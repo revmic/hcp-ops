@@ -4,25 +4,48 @@
 <!-- <div class="page-header">
     <h1>Sticky footer with fixed navbar</h1>
 </div>
-<p class="lead">Pin a fixed-height footer to the bottom of the viewport in desktop browsers with this custom HTML and CSS. A fixed navbar has been added with <code>padding-top: 60px;</code> on the <code>body > .container</code>.</p>
+<p class="lead">Pin a fixed-height footer to the bottom of the viewport in desktop browsers with this custom HTML and CSS.
+A fixed navbar has been added with <code>padding-top: 60px;</code> on the <code>body > .container</code>.</p>
  -->
-<form method="post" action="">
-    {{ form.hidden_tag() }}
-    <table>
-        <tr>
-            <td>First name:</td>
-            <td>{{ form.firstname(size=24) }}</td>
-        </tr>
-        <tr>
-            <td>Last name:</td>
-            <td>{{ form.lastname(size=24) }}</td>
-        </tr>
-        <tr>
-            <td></td>
-            <div class="controls">
-            <td><button type="submit" class="btn btn-success">Search Connectome</button></td>
-        </tr>
+{#<form method="post" action="">#}
+    <!-- Text input-->
+    <div class="control-group">
+      <label class="control-label">Grant restricted access to:</label>
+      <div class="controls">
+          {{ form.firstname(size=24) }}
+          {{ form.lastname(size=24) }}
+         <button id="search_cdb" class="btn btn-primary">Search Connectome</button>
+      </div>
+    </div>
+
+<div id="cdb_results" style="display: none">
+    <table class="table table-hover">
+        <thead><td>First Name</td><td>Last Name</td><td>Username</td><td>Email</td></thead>
+        <tbody>
+        </tbody>
     </table>
-</form>
+<p>{{ form.firstname.data }}</p>
+<button type="submit" class="btn btn-success">Select</button>
+</div>
+
+<div id="email" class="hidden">
+{#<form method="post" action="">#}
+    <div class="control-group">
+        <label class="control-label">Email user:</label>
+        <div class="controls">
+            {{ form.email }}
+        </div>
+    </div>
+{#</form>#}
+</div>
+
+<script>
+$(document).ready(function(){
+    $( "#search_cdb" ).click(function() {
+      $( "#cdb_results" ).show( "slow" );
+      $( "#email" ).show( "slow" );
+    });
+});
+</script>
 
 {% endblock %}
