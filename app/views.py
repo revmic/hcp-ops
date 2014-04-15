@@ -100,12 +100,15 @@ def search():
 @app.route('/email', methods=['GET', 'POST'])
 def email():
     form = EmailForm()
+
+    try:
+        if session['email'].endswith('.ed'):
+            session['email'] += 'u'
+    except:
+        print "Error appending 'u' to email"
+
     salutation = 'Dr. ' + session['lastname']
     message = salutation + ',\n\n' + session['email_msg']
-
-    form.email_from.data = session['sender_email']
-    form.email_cc.data = ','.join(CC_LIST)
-    form.email_body.data = message.replace('*FROM*', session['sender_name'])
 
     if request.method == 'POST':
         print form.email_to.data
@@ -123,12 +126,16 @@ def email():
 
         if retval == 1:
             flash('Your message to %s %s at %s has been sent!' %
-                  (session['firstname'], session['lastname'], session['email']), 'success')
+                  (session['firstname'], session['lastname'], form.email_to.data), 'success')
             return redirect(url_for('search'))
         else:
             flash(retval)
             return redirect(url_for('email'))
 
+    # These need loaded after checking for POST so any changed values will be reflected
     form.email_to.data = session['email']
+    form.email_body.data = message.replace('*FROM*', session['sender_name'])
+    form.email_from.data = session['sender_email']
+    form.email_cc.data = ','.join(CC_LIST)
 
     return render_template('email.html', form=form)

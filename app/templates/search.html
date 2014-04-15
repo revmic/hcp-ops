@@ -41,9 +41,9 @@
             </tbody>
         </table>
     </div>
-    {% elif form.firstname.data and form.lastname.data and not results %}
+    {% elif (form.firstname.data or form.lastname.data) and not results %}
     <div class="alert alert-warning"><span class="glyphicon glyphicon-warning-sign"></span>
-        No matching users found on ConnectomeDB
+        No matching users found on ConnectomeDB for {{ form.firstname.data }} {{ form.lastname.data}}
     </div>
     {% endif %}
 
@@ -60,7 +60,7 @@
         <span class="glyphicon glyphicon-thumbs-up"></span>
         {{ g.username }} has accepted open access DUT. Grant Restricted Access?
     </div>
-    {% elif g.username and open_access and restricted_access %}
+    {% elif session['username'] and open_access and restricted_access %}
     <div class="alert alert-success"><span class="glyphicon glyphicon-check"></span>
         {{ session['username'] }} has restricted access!
     </div>

@@ -83,10 +83,14 @@ def has_open_access(username):
     # print myResults[0][1]['memberOf']
 
     access = False
-    for group in myResults[0][1]['memberOf']:
-        if 'Phase2OpenUsers' in group:
-            #print "Open access DUT accepted"
-            access = True
+    print myResults[0][1]
+    try:
+        for group in myResults[0][1]['memberOf']:
+            if 'Phase2OpenUsers' in group:
+                #print "Open access DUT accepted"
+                access = True
+    except TypeError, e:
+        print e
 
     l.unbind()
     return access
@@ -108,6 +112,10 @@ def has_restricted_access(username):
         return e
 
     access = False
+    print myResults
+    for r in myResults:
+        print r
+
     for group in myResults[0][1]['memberOf']:
         if 'Phase2ControlledUsers' in group:
             #print "Has restricted access"
