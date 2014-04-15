@@ -2,16 +2,9 @@ import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# Cross-site r forging
 CSRF_ENABLED = True
-SECRET_KEY = 'Exc1t3dBananas618'
+SECRET_KEY = 'Not so secret'
 
-# Email Server
-MAIL_SERVER = 'smtp.gmail.com'
-MAIL_PORT = 465
-MAIL_USE_TLS = False
-MAIL_USE_SSL = True
-MAIL_USERNAME = 'mhilema@gmail.com'
-MAIL_PASSWORD = '8qar9wor'
-
-ADMINS = ['mhilema@gmail.com']
+# Email
+#CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.wustl.edu']
+CC_LIST = ['mhilema@gmail.com']

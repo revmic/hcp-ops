@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+form textarea#email_body {
+     width: 800px;
+     height: 400px;
+     max-width: 800px;
+}
+</style>
+
+<form method="post" class="form-horizontal" role="form" style="float:left">
+    <div class="form-group">
+        <label class="col-sm-1 control-label">To:</label>
+        <div class="col-sm-10">
+            {{ form.email_to(size=60) }}
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-1 control-label">From:</label>
+        <div class="col-sm-10">
+            {{ form.email_from(size=60) }}
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-1 control-label">CC:</label>
+        <div class="col-sm-10">
+            {{ form.email_cc(size=60, disabled=True) }}
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-1 control-label">Subject:</label>
+        <div class="col-sm-10">
+            {{ form.email_subject(size=60, disabled=True) }}
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-1 control-label">Body:</label>
+        <div class="col-sm-10">
+            {{ form.email_body }}
+        </div>
+    </div>
+    <button id="send" name="send_email" class="btn btn-primary">
+        <span id="button_icon" class="glyphicon glyphicon-envelope"></span> Send Email
+    </button>
+    <div id='flash'>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}"><span class="glyphicon glyphicon-warning-sign"></span>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+</form>
+
+<script>
+$(document).ready(function(){
+    $('#send').click(function(){
+        $("#button_icon").attr('class', 'fa fa-spinner fa-spin fa-lg')
+    });
+});
+</script>
+
+{% endblock %}

@@ -1,12 +1,13 @@
 {% extends "layout.html" %}
 {% block content %}
-
 <form method="post" action="">
     <!-- Search Text Input -->
     <div class="control-group">
     {#  <label class="control-label">Search ConnectomeDB for:</label>#}
       <div class="controls">
-          <button name="search_cdb" id="search_cdb" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search Connectome</button>
+          <button name="search_cdb" class="btn btn-primary" value="s">
+            <span class="glyphicon glyphicon-search"></span> Search Connectome
+          </button>
           {{ form.firstname(placeholder='First name', size=24) }}
           {{ form.lastname(placeholder='Last name', size=24) }}
       </div>
@@ -16,9 +17,15 @@
     <!-- Connectome User Search Results -->
     {% if results %}
     <div id="cdb_results" style="display: block">
+        {% if g.exact_match %}
         <div class="alert alert-info">
-            <span class="glyphicon glyphicon-user"></span> Select a user below to validate Phase2 Open Access membership
+            <span class="glyphicon glyphicon-user"></span> <b>Exact match found.</b> Select a user below to validate Phase2 Open Access membership
         </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-user"></span> <b>No exact match found,</b> but you can select a user from the possible matches below to validate Phase2 Open Access membership
+        </div>
+        {% endif %}
         <table class="table table-striped">
             <thead class="text-muted">
             <td>Search AD</td><td>First Name</td><td>Last Name</td><td>Username</td><td>Email</td>
@@ -26,22 +33,25 @@
             <tbody>
             {% for user in results %}
             <tr>
-                <td><button name="search_ad" class="btn btn-success btn-sm" value="{{ user.get('login') }}">Select</button></td>
-                <td>{{ user.get('firstname') }}</td><td>{{ user.get('lastname') }}</td><td>{{ user.get('login') }}</td><td>{{ user.get('email') }}</td>
+                <td><button name="search_ad" class="btn btn-success btn-sm" value="{{ user }}">Select</button></td>
+                <td>{{ user.get('firstname') }}</td><td>{{ user.get('lastname') }}</td><td>{{ user.get('login') }}</td>
+                <td><a href="mailto:{{ user.get('email') }}">{{ user.get('email') }}</a></td>
             </tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% elif form.firstname.data and form.lastname.data and not results %}
     <div class="alert alert-warning"><span class="glyphicon glyphicon-warning-sign"></span>
         No matching users found on ConnectomeDB
     </div>
-
     {% endif %}
 
-    {% if g.username and open %}
+    {% if g.username and not open_access %}
+    <div class="alert alert-danger"><span class="glyphicon glyphicon-thumbs-down"></span>
+        {{ g.username }} has NOT accepted the Open Access DUT. Please notify the user.
+    </div>
+    {% elif g.username and open_access and not restricted_access%}
     <hr>
     <div class="alert alert-success">
         <button name="grant_restricted" class="btn btn-sm btn-danger" value="granted">
@@ -50,26 +60,30 @@
         <span class="glyphicon glyphicon-thumbs-up"></span>
         {{ g.username }} has accepted open access DUT. Grant Restricted Access?
     </div>
-    {% elif g.username and not access %}
-    <div class="alert alert-danger"><span class="glyphicon glyphicon-thumbs-down"></span>
-        {{ g.username }} has NOT accepted the Open Access DUT. Please notifify the user.
-    </div>
-    {% endif %}
-
-    {#{% if form.email.data and (open and restricted) or not (open and restricted) %}#}
-    <hr>
-    {% if restricted %}
+    {% elif g.username and open_access and restricted_access %}
     <div class="alert alert-success"><span class="glyphicon glyphicon-check"></span>
-        {{ session['username'] }} was successfully granted restricted access!
+        {{ session['username'] }} has restricted access!
     </div>
     {% endif %}
 
-    {% if display_email %}
-    <div class="controls">
-        {{ form.email(row=50, cols=120) }}<br>
-        <button name="send_email" id="search_cdb" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Send Email</button>
+    {% if gen_email %}
+    <div class="control-group">
+      <div class="controls">
+          <button name="gen_email" value="gen" class="btn btn-primary"><span class="glyphicon glyphicon-envelope"></span> Generate Email As</button>
+          {{ form.generate_email_as }}
+      </div>
     </div>
     {% endif %}
+    <div id='flash'>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}"><!-- <span class="glyphicon glyphicon-thumbs-up"></span> -->
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
 </form>
-
 {% endblock %}
