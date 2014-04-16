@@ -7,9 +7,16 @@ form textarea#email_body {
      height: 400px;
      max-width: 800px;
 }
+.email {
+    /*border:1px solid;*/
+    border-radius:10px;
+    background-color:#E7E7E7;
+    padding:15px
+}
 </style>
 
 <form method="post" class="form-horizontal" role="form" style="float:left">
+    <div class="email">
     <div class="form-group">
         <label class="col-sm-1 control-label">To:</label>
         <div class="col-sm-10">
@@ -53,6 +60,7 @@ form textarea#email_body {
             {% endfor %}
         {% endif %}
         {% endwith %}
+    </div>
     </div>
 </form>
 

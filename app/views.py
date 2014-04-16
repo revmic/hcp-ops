@@ -139,3 +139,8 @@ def email():
     form.email_cc.data = ','.join(CC_LIST)
 
     return render_template('email.html', form=form)
+
+@app.route('/history', methods=['GET'])
+def history():
+    form = RestrictedAccessForm()
+    return render_template('history.html', form=form)
