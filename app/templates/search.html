@@ -53,8 +53,8 @@
     {% elif g.username and open_access and not restricted_access%}
     <div class="alert alert-success">
         <span class="glyphicon glyphicon-thumbs-up"></span>
-        {{ g.username }} has accepted open access DUT. Grant Restricted Access?
-        <button name="grant_restricted" class="btn btn-warning" value="granted" style="float:right;">
+        <b>{{ g.username }}</b> has accepted open access DUT. Grant Restricted Access?
+        <button name="grant_restricted" class="btn btn-success" value="granted" style="float:right;">
             <span class="glyphicon glyphicon-plus"></span> Grant Restricted Access
         </button>
     </div>

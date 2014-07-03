@@ -29,7 +29,7 @@ def search():
             g.exact_match = False
         else:
             session['email_msg'] = \
-                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps:\n\n" + \
+                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps and respond to this email when completed:\n\n" + \
                 "1) Register for a ConnectomeDB account at https://db.humanconnectome.org .\n" + \
                 "2) Log into your account and read and accept the Open Access Data Use Terms that you are directed to by the site.\n\n" + \
                 "If you already have an account and have accepted the Open Access Data Use Terms, please let me know the username and I will grant access to that account.\n\n" + \
