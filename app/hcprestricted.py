@@ -1,6 +1,7 @@
 from hcpxnat.interface import HcpInterface
 from email.mime.text import MIMEText
-from config import CC_LIST
+from model import connect_db
+from config import CC_LIST  # Move to config file
 import ConfigParser
 import smtplib
 import ldap
@@ -112,14 +113,19 @@ def has_restricted_access(username):
         return e
 
     access = False
-    print myResults
-    for r in myResults:
-        print r
+    # print myResults
+    # for r in myResults:
+    #     print r
 
-    for group in myResults[0][1]['memberOf']:
-        if 'Phase2ControlledUsers' in group:
-            #print "Has restricted access"
-            access = True
+    try:
+        for group in myResults[0][1]['memberOf']:
+            if 'Phase2ControlledUsers' in group:
+                #print "Has restricted access"
+                access = True
+    except TypeError, e:
+        print 'TypeError: "%s" for %s' % (e, username)
+    except KeyError, e:
+        print 'KeyError: "%s" for %s' % (e, username)
 
     return access
 
@@ -163,6 +169,23 @@ def send_email(subject, recipients, sender, message):
         return 1
     finally:
         session.quit()
+
+
+def update_db(s):
+    db = connect_db()
+
+    # Check that the user is in Phase2ControlledUsers AD group
+    # This should only happen in the case where access is granted
+    # if not has_restricted_access(s['username']):
+    #     s['status'] = 'Error'
+
+    db.execute(
+        "insert into restrictedaccess (firstname, lastname, email, login, status) \
+        values ('%s', '%s', '%s', '%s', '%s')" % \
+        (s['firstname'], s['lastname'], s['email'], s['username'], s['status'])
+        )
+    db.commit()
+    db.close()
 
 
 if __name__ == '__main__':

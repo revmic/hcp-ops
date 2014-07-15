@@ -5,6 +5,7 @@ from config import CC_LIST
 from app import app
 import json
 
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -34,9 +35,11 @@ def search():
                 "2) Log into your account and read and accept the Open Access Data Use Terms that you are directed to by the site.\n\n" + \
                 "If you already have an account and have accepted the Open Access Data Use Terms, please let me know the username and I will grant access to that account.\n\n" + \
                 "As a reminder, because of the sensitivity of Restricted Data, please do not forward it to others in your laboratory; when their Restricted Access application is submitted and approved, they will be able to access the data themselves.\n\nRegards,\n\n*FROM*"
+            session['status'] = 'No Account'
             session['firstname'] = form.firstname.data
             session['lastname'] = form.lastname.data
-            session['email'] = None
+            session['email'] = ''
+            session['username'] = ''
             gen_email = True
     elif not (form.firstname.data or form.lastname.data) and request.form.get('search_cdb'):
         flash("You must enter at least a first or last name to search.", 'warning')
@@ -61,8 +64,9 @@ def search():
             session['email_msg'] = \
                 "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I found an account '"+session['username']+"' that appears to be yours, but the Open Access Data Use Terms had not been accepted.  To fulfill the conditions of this approval, please log into your account and read and accept the HCP Open Access Data Use Terms that you are directed to by the site.  If you are unable to access your account because the account hasn't been verified, please click the 'Resend email verification' link next to the 'Log In' button.  Please let me know when you have accepted the Open Access terms and I will grant access to the restricted data.\n\n" + \
                 "As a reminder, because of the sensitivity of Restricted Data, please do not forward it to others in your laboratory; when their Restricted Access application is submitted and approved, they will be able to access the data themselves.\n\nRegards,\n\n*FROM*"
+            session['username'] = user.get('login')
+            session['status'] = 'No DUT'
             gen_email = True
-
 
     ## Grant Restricted Access in AD ##
     granted_action = request.form.get('grant_restricted')
@@ -75,7 +79,10 @@ def search():
                 "Per approval of your application for access to Restricted Access HCP data, I've granted access to restricted data to your '"+session['username']+"' account on https://db.humanconnectome.org .\n\n" + \
                 "As a reminder, because of the sensitivity of Restricted Data, please do not forward it to others in your laboratory; when their Restricted Access application is submitted and approved, they will be able to access the data themselves.\n\n" + \
                 "Please feel free to contact me if you have any questions or are unable to access the restricted data.\n\nRegards,\n\n*FROM*"
+            session['status'] = 'Access Granted'
             gen_email = True
+        else:
+            flash(retval, 'danger')
 
         restricted_access = has_restricted_access(session['username'])
         open_access = has_open_access(session['username'])
@@ -86,6 +93,7 @@ def search():
 
     if generate_email_action:
         # Populate user session variables if nothing was found
+        # update_db(session) # Test w/o actually emailing
 
         for sender in form.generate_email_as.choices:
             if sender[0] == form.generate_email_as.data:
@@ -101,7 +109,7 @@ def search():
 def email():
     form = EmailForm()
 
-    try:
+    try:  # Need to find out why this gets truncated
         if session['email'].endswith('.ed'):
             session['email'] += 'u'
     except:
@@ -125,14 +133,17 @@ def email():
         print retval
 
         if retval == 1:
-            flash('Your message to %s %s at %s has been sent!' %
-                  (session['firstname'], session['lastname'], form.email_to.data), 'success')
+            flash('Your message to %s %s at %s has been sent! Access DB updated.' %
+                (session['firstname'], session['lastname'], form.email_to.data), 'success')
+            # Update DB if email sent successfully
+            session['email'] = form.email_to.data
+            update_db(session)
             return redirect(url_for('search'))
         else:
             flash(retval)
             return redirect(url_for('email'))
 
-    # These need loaded after checking for POST so any changed values will be reflected
+    # These need re-loaded after checking for POST so any changed values will be reflected
     form.email_to.data = session['email']
     form.email_body.data = message.replace('*FROM*', session['sender_name'])
     form.email_from.data = session['sender_email']
@@ -140,7 +151,15 @@ def email():
 
     return render_template('email.html', form=form)
 
-@app.route('/history', methods=['GET'])
-def history():
+@app.route('/report', methods=['GET'])
+def report():
     form = RestrictedAccessForm()
-    return render_template('history.html', form=form)
+    db = connect_db()
+    results = list()
+    query = db.execute("select * from restrictedaccess")
+    for r in query:
+        results.append(r)
+    # print results
+    db.close()
+
+    return render_template('report.html', results=results,form=form)
