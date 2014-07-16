@@ -4,19 +4,18 @@
 <h3>Restricted Access Report</h3>
 <table class="table table-striped">
     <thead>
-        <th>First Name</th><th>Last Name</th><th>Account</th><th>Email</th><th>Status</th>
+        <th>First Name</th><th>Last Name</th><th>Account</th><th>Email</th><th>Status</th><th>Last Updated</th>
     </thead>
     <tbody>
         {% for r in results %}
         <tr>
-            <td>{{ i }}</td>
+            <!-- <td>{{ i }}</td> -->
             <td>{{ r[1] }}</td>
             <td>{{ r[2] }}</td>
             <td>{{ r[4] }}</td>
             <td>{{ r[3] }}</td>
             {% if r[7] == 'Access Granted' %}
                 <td style='color: green'>
-                <!-- <td class='success'> -->
             {% elif r[7] == 'No DUT' %}
                 <td style='color: orange'>
             {% elif r[7] == 'No Account' %}
@@ -25,6 +24,7 @@
                 <td>
             {% endif %}
                 {{ r[7] }}</td>
+            <td>{{ r[8] }}</td>
         </tr>
         {% endfor %}
     </tbody>

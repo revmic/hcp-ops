@@ -1,5 +1,6 @@
 from hcpxnat.interface import HcpInterface
 from email.mime.text import MIMEText
+from datetime import datetime, date
 from model import connect_db
 from config import CC_LIST  # Move to config file
 import ConfigParser
@@ -41,6 +42,7 @@ def search_cdb(firstname=None, lastname=None):
                 possible_matches.append(user)
 
     return matches, possible_matches
+
 
 def ad_bind():
     #TODO - password and settings in config file
@@ -179,14 +181,43 @@ def update_db(s):
     # if not has_restricted_access(s['username']):
     #     s['status'] = 'Error'
 
-    db.execute(
-        "insert into restrictedaccess (firstname, lastname, email, login, status) \
-        values ('%s', '%s', '%s', '%s', '%s')" % \
-        (s['firstname'], s['lastname'], s['email'], s['username'], s['status'])
-        )
+    today = date.today()
+
+    # Check if this is an existing record and update instead of insert
+    existing_id = db.execute(
+        "SELECT id FROM restrictedaccess WHERE login='%s' AND email='%s'" % \
+        (s['username'], s['email'])
+        ).fetchone()[0]
+
+    print "Existing ID:", existing_id
+
+    if existing_id:
+        q = "UPDATE restrictedaccess SET login='%s',email='%s',status='%s',status_updated='%s' WHERE id=%s" % \
+            (s['username'], s['email'], s['status'], today, existing_id)
+        print q
+        db.execute(q)
+    else:
+        db.execute(
+            "INSERT INTO restrictedaccess (firstname, lastname, email, login, status, status_updated) \
+            VALUES ('%s', '%s', '%s', '%s', '%s', '%s')" % \
+            (s['firstname'], s['lastname'], s['email'], s['username'], s['status'], today)
+            )
+
     db.commit()
     db.close()
 
+"""
+>>> # Insert a date object into the database
+>>> today = date.today()
+>>> c.execute('''INSERT INTO example(created_at) VALUES(?)''', (today,))
+>>> db.commit()
+>>>
+>>> # Retrieve the inserted object
+>>> c.execute('''SELECT created_at FROM example''')
+>>> row = c.fetchone()
+>>> print('The date is {0} and the datatype is {1}'.format(row[0], type(row[0])))
+    # The date is 2013-04-14 and the datatype is <class 'str'>
+"""
 
 if __name__ == '__main__':
     #has_open_access('hilemtest6')
