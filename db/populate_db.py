@@ -2,6 +2,9 @@ from app.model import connect_db
 from app.hcprestricted import ad_bind, has_restricted_access, config
 from app.hcpxnat.interface import HcpInterface
 
+""" Move to the root directory (same level as app/) to execute
+"""
+
 db = connect_db()
 ldap = ad_bind()
 cdb = HcpInterface(url=config.get('hcpxnat', 'site'),

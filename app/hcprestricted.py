@@ -1,6 +1,6 @@
 from hcpxnat.interface import HcpInterface
 from email.mime.text import MIMEText
-from datetime import datetime, date
+from datetime import date
 from model import connect_db
 from config import CC_LIST  # Move to config file
 import ConfigParser
@@ -29,18 +29,23 @@ def search_cdb(firstname=None, lastname=None):
            firstname.lower() == user.get('firstname').lower():
             matches.append(user)
 
-    if not matches:  # No exact matches found, look for partial matches
+    if not matches:  # No exact matches found, look for partial
         for user in users:
+            # Look for either firstname only
             if firstname and not lastname:
-                if firstname.lower() == user.get('firstname').lower():
+                if firstname.lower() in user.get('firstname').lower():
                     possible_matches.append(user)
+            # Or lastname only
             elif lastname and not firstname:
-                if lastname.lower() == user.get('lastname').lower():
+                if lastname.lower() in user.get('lastname').lower():
                     possible_matches.append(user)
+            # Look for exact lastname and first character of firstname
             elif lastname.lower() == user.get('lastname').lower() and \
                firstname.lower()[0] == user.get('firstname').lower()[0]:
                 possible_matches.append(user)
-
+            # Look for substring of first and last names
+            #elif lastname.lower() in user.get('lastname').lower():# and \
+            #    possible_matches.append(user)
     return matches, possible_matches
 
 
@@ -184,11 +189,15 @@ def update_db(s):
     today = date.today()
 
     # Check if this is an existing record and update instead of insert
-    existing_id = db.execute(
+    result = db.execute(
         "SELECT id FROM restrictedaccess WHERE login='%s' AND email='%s'" % \
         (s['username'], s['email'])
-        ).fetchone()[0]
+        ).fetchone()
 
+    try:
+        existing_id = result[0]
+    except TypeError:
+        existing_id = None
     print "Existing ID:", existing_id
 
     if existing_id:

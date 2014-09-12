@@ -9,8 +9,9 @@ config.read('/Users/michael/.hcprestricted')
 CSRF_ENABLED = True
 SECRET_KEY = 'Not so secret'
 
-#CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.wustl.edu']
-CC_LIST = ['mhilema@gmail.com']
+CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.wustl.edu']
+#CC_LIST = ['mhilema@gmail.com']
+#CC_LIST = []
 
 ''' DATABASE '''
 # Load default config and override config from an environ var

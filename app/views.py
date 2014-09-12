@@ -50,7 +50,7 @@ def search():
     if user_select_action:  # There was an AD Search button event
         # The action value is a dict that gets returned as a string
         # So, convert the dict string to a json string and back to Python dict
-        user_json = user_select_action.replace("u'", '"').replace("'", '"')
+        user_json = user_select_action.replace(" u'", " '").replace("{u'", "{'").replace("'", '"')
         user = json.loads(user_json)
         g.username = user.get('login')
         session['username'] = user.get('login')
@@ -108,13 +108,11 @@ def search():
 @app.route('/email', methods=['GET', 'POST'])
 def email():
     form = EmailForm()
-
-    try:  # Need to find out why this gets truncated
-        if session['email'].endswith('.ed'):
-            session['email'] += 'u'
-    except:
-        print "Error appending 'u' to email"
-
+    # try:  # Need to find out why this gets truncated
+    #     if session['email'].endswith('.ed'):
+    #         session['email'] += 'u'
+    # except:
+    #     print "Error appending 'u' to email"
     salutation = 'Dr. ' + session['lastname']
     message = salutation + ',\n\n' + session['email_msg']
 
@@ -143,7 +141,8 @@ def email():
             flash(retval)
             return redirect(url_for('email'))
 
-    # These need re-loaded after checking for POST so any changed values will be reflected
+    # These need re-loaded after checking for POST so any changed values will be
+    # saved back to the form.data
     form.email_to.data = session['email']
     form.email_body.data = message.replace('*FROM*', session['sender_name'])
     form.email_from.data = session['sender_email']
@@ -156,7 +155,7 @@ def report():
     form = RestrictedAccessForm()
     db = connect_db()
     results = list()
-    query = db.execute("select * from restrictedaccess")
+    query = db.execute("SELECT * FROM restrictedaccess ORDER BY lastname")
     for r in query:
         results.append(r)
     # print results

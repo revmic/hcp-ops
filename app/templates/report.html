@@ -4,7 +4,13 @@
 <h3>Restricted Access Report</h3>
 <table class="table table-striped">
     <thead>
-        <th>First Name</th><th>Last Name</th><th>Account</th><th>Email</th><th>Status</th><th>Last Updated</th>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Account</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Last Updated</th>
+        <th></th>
     </thead>
     <tbody>
         {% for r in results %}
@@ -25,9 +31,22 @@
             {% endif %}
                 {{ r[7] }}</td>
             <td>{{ r[8] }}</td>
+            <td>
+            {% if r[9] %}
+            <button type="button" class="btn btn-xs btn-info" title="Note" data-toggle="popover" data-placement="left" data-content="{{ r[9] }}">
+                <span class="glyphicon glyphicon-exclamation-sign"></span>
+            </button>
+            {% endif %}
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<script>
+$(function () {
+    $('.btn').popover({trigger: 'hover'});
+});
+</script>
 
 {% endblock %}

@@ -5,7 +5,7 @@ from app.views import g
 ''' MODEL Methods '''
 def connect_db():
     # rv = sqlite3.connect(config.DATABASE)
-    rv = sqlite3.connect('/Users/michael/Development/hcp_restricted_dev/db/restricted.db')
+    rv = sqlite3.connect('/Users/michael/Development/hcp_restricted/db/restricted.db')
     rv.row_factory = sqlite3.Row
     return rv
 

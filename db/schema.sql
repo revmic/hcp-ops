@@ -7,7 +7,7 @@ create table restrictedaccess (
     login text not null,
     other_accounts boolean,
     email_matches text,
-    status text, /* access granted, no account, terms not accepted */
+    status text,
     status_updated datetime,
     notes text
 );
