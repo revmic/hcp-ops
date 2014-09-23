@@ -1,5 +1,6 @@
 from flask import render_template, request, g, session, redirect, url_for, flash
 from forms import RestrictedAccessForm, EmailForm
+from multiprocessing import Process
 from hcprestricted import *
 from config import CC_LIST
 from app import app
@@ -25,10 +26,9 @@ def search():
         if matches:
             results = matches
             g.exact_match = True
-        elif possible_matches:
+        else:
             results = possible_matches
             g.exact_match = False
-        else:
             session['email_msg'] = \
                 "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps and respond to this email when completed:\n\n" + \
                 "1) Register for a ConnectomeDB account at https://db.humanconnectome.org .\n" + \
@@ -57,8 +57,8 @@ def search():
         session['email'] = user.get('email')
         session['firstname'] = user.get('firstname')
         session['lastname'] = user.get('lastname')
-        open_access = has_open_access(session['username'])
-        restricted_access = has_restricted_access(session['username'])
+        open_access = has_group_membership(session['username'], 'Phase2OpenUsers')
+        restricted_access = has_group_membership(session['username'], 'Phase2ControlledUsers')
 
         if not open_access:
             session['email_msg'] = \
@@ -84,8 +84,8 @@ def search():
         else:
             flash(retval, 'danger')
 
-        restricted_access = has_restricted_access(session['username'])
-        open_access = has_open_access(session['username'])
+        restricted_access = has_group_membership(session['username'], 'Phase2ControlledUsers')
+        open_access = has_group_membership(session['username'], 'Phase2OpenUsers')
 
 
     ## Render email template ##
@@ -108,11 +108,6 @@ def search():
 @app.route('/email', methods=['GET', 'POST'])
 def email():
     form = EmailForm()
-    # try:  # Need to find out why this gets truncated
-    #     if session['email'].endswith('.ed'):
-    #         session['email'] += 'u'
-    # except:
-    #     print "Error appending 'u' to email"
     salutation = 'Dr. ' + session['lastname']
     message = salutation + ',\n\n' + session['email_msg']
 
@@ -141,8 +136,7 @@ def email():
             flash(retval)
             return redirect(url_for('email'))
 
-    # These need re-loaded after checking for POST so any changed values will be
-    # saved back to the form.data
+    # These need re-loaded after checking for POST so any changed values will be saved back to form.data
     form.email_to.data = session['email']
     form.email_body.data = message.replace('*FROM*', session['sender_name'])
     form.email_from.data = session['sender_email']
@@ -150,15 +144,31 @@ def email():
 
     return render_template('email.html', form=form)
 
-@app.route('/report', methods=['GET'])
+@app.route('/report', methods=['GET', 'POST'])
 def report():
     form = RestrictedAccessForm()
-    db = connect_db()
+    db = get_db()
+
     results = list()
     query = db.execute("SELECT * FROM restrictedaccess ORDER BY lastname")
     for r in query:
         results.append(r)
-    # print results
-    db.close()
 
-    return render_template('report.html', results=results,form=form)
+    stats = list()
+    query = db.execute("SELECT * FROM access_stats ORDER BY id")
+    for r in query:
+        stats.append(r)
+
+    # Handle report counts refresh
+    if request.method == 'POST':
+        print stats
+        for stat in stats:
+            update_access_count(stat[2])
+        return redirect(url_for('report'))
+            # time.sleep(0.5)
+            # p = Process(target=update_access_count, args=(stat[2],))
+            # p.start()
+            # p.join()
+
+    db.close()
+    return render_template('report.html', results=results, stats=stats, form=form)

@@ -1,11 +1,11 @@
-from app.model import connect_db
-from app.hcprestricted import ad_bind, has_restricted_access, config
+from app.model import get_db
+from app.hcprestricted import ad_bind, has_group_membership, config
 from app.hcpxnat.interface import HcpInterface
 
 """ Move to the root directory (same level as app/) to execute
 """
 
-db = connect_db()
+db = get_db()
 ldap = ad_bind()
 cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
                    username=config.get('hcpxnat', 'username'),
@@ -13,7 +13,7 @@ cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
 
 users = cdb.getUsers()
 for u in users:
-    if has_restricted_access(u['login']):
+    if has_group_membership(u['login'], 'Phase2ControlledUsers'):
         print u['login'], "has restricted access."
         db.execute(
             "insert into restrictedaccess (firstname, lastname, email, login, status) \
