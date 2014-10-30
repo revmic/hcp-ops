@@ -4,7 +4,6 @@ from multiprocessing import Process
 from hcprestricted import *
 from config import CC_LIST
 from app import app
-import json
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -29,6 +28,11 @@ def search():
         else:
             results = possible_matches
             g.exact_match = False
+            gen_email = True
+
+        # Only populate session with this if there's a search action, otherwise
+        # session variables get incorrectly set for other actions
+        if request.form.get('search_cdb'):
             session['email_msg'] = \
                 "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps and respond to this email when completed:\n\n" + \
                 "1) Register for a ConnectomeDB account at https://db.humanconnectome.org .\n" + \
@@ -40,7 +44,7 @@ def search():
             session['lastname'] = form.lastname.data
             session['email'] = ''
             session['username'] = ''
-            gen_email = True
+            
     elif not (form.firstname.data or form.lastname.data) and request.form.get('search_cdb'):
         flash("You must enter at least a first or last name to search.", 'warning')
 
@@ -58,8 +62,10 @@ def search():
         session['email'] = user.get('email')
         session['firstname'] = user.get('firstname')
         session['lastname'] = user.get('lastname')
-        open_access = has_group_membership(session['username'], 'Phase2OpenUsers')
-        restricted_access = has_group_membership(session['username'], 'Phase2ControlledUsers')
+        open_access = has_group_membership(session['username'],
+            'Phase2OpenUsers')
+        restricted_access = has_group_membership(session['username'],
+            'Phase2ControlledUsers')
 
         if not open_access:
             session['email_msg'] = \
@@ -73,7 +79,6 @@ def search():
     granted_action = request.form.get('grant_restricted')
 
     if granted_action:  # Grant Restricted Access event
-        #print session['username']
         retval = grant_restricted_access(session['username'])
         if retval == True:
             session['email_msg'] = \
@@ -85,8 +90,10 @@ def search():
         else:
             flash(retval, 'danger')
 
-        restricted_access = has_group_membership(session['username'], 'Phase2ControlledUsers')
-        open_access = has_group_membership(session['username'], 'Phase2OpenUsers')
+        restricted_access = has_group_membership(session['username'], 
+            'Phase2ControlledUsers')
+        open_access = has_group_membership(session['username'], 
+            'Phase2OpenUsers')
 
 
     ## Render email template ##
@@ -103,8 +110,10 @@ def search():
 
         return redirect(url_for('email'))
 
-    return render_template('search.html', form=form, results=results, open_access=open_access,
-                           restricted_access=restricted_access, gen_email=gen_email)
+    return render_template('search.html', form=form, results=results,
+                            open_access=open_access,
+                            restricted_access=restricted_access,
+                            gen_email=gen_email)
 
 @app.route('/email', methods=['GET', 'POST'])
 def email():
@@ -173,3 +182,7 @@ def report():
 
     db.close()
     return render_template('report.html', results=results, stats=stats, form=form)
+
+@app.route('/config', methods=['GET', 'POST'])
+def config():
+    return render_template('config.html')
