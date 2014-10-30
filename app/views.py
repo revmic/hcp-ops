@@ -49,9 +49,10 @@ def search():
 
     if user_select_action:  # There was an AD Search button event
         # The action value is a dict that gets returned as a string
-        # So, convert the dict string to a json string and back to Python dict
-        user_json = user_select_action.replace(" u'", " '").replace("{u'", "{'").replace("'", '"')
-        user = json.loads(user_json)
+        # So, we need to evaluate the string to get a dict
+        import ast
+        user = ast.literal_eval(user_select_action)
+
         g.username = user.get('login')
         session['username'] = user.get('login')
         session['email'] = user.get('email')
