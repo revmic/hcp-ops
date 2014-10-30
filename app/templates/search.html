@@ -6,7 +6,7 @@
     {#  <label class="control-label">Search ConnectomeDB for:</label>#}
       <div class="controls">
           <button name="search_cdb" class="btn btn-primary" value="s">
-            <span class="glyphicon glyphicon-search"></span> Search Connectome
+            <span class="glyphicon glyphicon-search"> Search Connectome</span>
           </button>
           {{ form.firstname(placeholder='First name', size=24) }}
           {{ form.lastname(placeholder='Last name', size=24) }}
@@ -22,7 +22,7 @@
         </div>
         {% else %}
         <div class="alert alert-warning">
-            <span class="glyphicon glyphicon-user"></span> <b>No exact match found,</b> but you can select a user from the possible matches below to validate Phase2 Open Access membership
+            <span class="glyphicon glyphicon-user"></span> <b>No exact match found</b> Select a user from the possible matches below to validate Phase2 Open Access membership, or send <b>{{ form.firstname.data }}</b> an email
         </div>
         {% endif %}
         <table class="table table-striped">

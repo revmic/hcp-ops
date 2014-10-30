@@ -1,8 +1,9 @@
 from hcpxnat.interface import HcpInterface
 from email.mime.text import MIMEText
 from datetime import date
-from model import connect_db
+from model import get_db
 from config import CC_LIST  # Move to config file
+from app.views import g
 import ConfigParser
 import smtplib
 import ldap
@@ -10,7 +11,6 @@ import ldap
 config = ConfigParser.ConfigParser()
 config.read('/Users/michael/.hcprestricted')
 
-#cdb = HcpInterface(config='/home/NRG/mhilem01/.hcpxnat_cdb.cfg')
 cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
                    username=config.get('hcpxnat', 'username'),
                    password=config.get('hcpxnat', 'password'))
@@ -50,7 +50,6 @@ def search_cdb(firstname=None, lastname=None):
 
 
 def ad_bind():
-    #TODO - password and settings in config file
     ldap_uri=config.get('ldap', 'uri')
     bind_dn="cn=HCPDB Read Write,ou=Service Accounts,ou=HCP Users,dc=hcp,dc=mir"
     ldap_pass=config.get('ldap', 'password')
@@ -73,10 +72,19 @@ def ad_bind():
         return l
 
 
-def has_open_access(username):
-    """ Check AD for 'Phase2OpenUsers' group membership
+def get_ldap():
+    if not hasattr(g, 'ldap_conn'):
+        g.ldap_conn = ad_bind()
+    return g.ldap_conn
+
+
+def has_group_membership(username, ad_group):
+    """ Check AD for group membership
     """
-    l = ad_bind()
+    # global l
+    # if not l:
+    #     l = ad_bind()
+    l = get_ldap()
     base_dn = "dc=hcp,dc=mir"
     filter='(name=%s)' % username
     retrieve_attrs = None
@@ -87,60 +95,29 @@ def has_open_access(username):
     except ldap.LDAPError, e:
         print e
         return e
-
     # print myResults[0][1]['memberOf']
-
     access = False
-    print myResults[0][1]
+    # print myResults[0][1]
     try:
         for group in myResults[0][1]['memberOf']:
-            if 'Phase2OpenUsers' in group:
-                #print "Open access DUT accepted"
+            if ad_group in group:
                 access = True
     except TypeError, e:
-        print e
-
-    l.unbind()
-    return access
-
-
-def has_restricted_access(username):
-    """ Check AD for 'Phase2OpenUsers' group membership
-    """
-    l = ad_bind()
-    base_dn = "dc=hcp,dc=mir"
-    filter='(name=%s)' % username
-    retrieve_attrs = None
-    scope = ldap.SCOPE_SUBTREE
-
-    try:  # Search for username
-        myResults = l.search_s(base_dn, scope, filter, retrieve_attrs)
-    except ldap.LDAPError, e:
-        print e
-        return e
-
-    access = False
-    # print myResults
-    # for r in myResults:
-    #     print r
-
-    try:
-        for group in myResults[0][1]['memberOf']:
-            if 'Phase2ControlledUsers' in group:
-                #print "Has restricted access"
-                access = True
-    except TypeError, e:
-        print 'TypeError: "%s" for %s' % (e, username)
+        print e, "for", username, ad_group
     except KeyError, e:
-        print 'KeyError: "%s" for %s' % (e, username)
+        print e, "for", username, ad_group
 
+    # l.unbind()
     return access
 
 
 def grant_restricted_access(username):
     """ Add to 'Phase2ControlledUsers'
     """
-    l = ad_bind()
+    # global l
+    # if not l:
+    #     l = ad_bind()
+    l = get_ldap()
     #base_dn="dc=hcp,dc=mir"
     user_dn = 'CN=%s,OU=Members,OU=HCP Users,DC=hcp,DC=mir' % username
     group_dn = 'CN=Phase2ControlledUsers,OU=Web Security Groups,OU=HCP Users,DC=hcp,DC=mir'
@@ -155,7 +132,7 @@ def grant_restricted_access(username):
         return e
 
     print "Added to Phase2ControlledUsers"
-    l.unbind()
+    # l.unbind()
     return True
 
 
@@ -179,20 +156,14 @@ def send_email(subject, recipients, sender, message):
 
 
 def update_db(s):
-    db = connect_db()
-
-    # Check that the user is in Phase2ControlledUsers AD group
-    # This should only happen in the case where access is granted
-    # if not has_restricted_access(s['username']):
-    #     s['status'] = 'Error'
-
+    db = get_db()
     today = date.today()
 
     # Check if this is an existing record and update instead of insert
-    result = db.execute(
+    result = db.execute(  # TODO - fix update
         "SELECT id FROM restrictedaccess WHERE login='%s' AND email='%s'" % \
         (s['username'], s['email'])
-        ).fetchone()
+        ).fetchone()  # Doesn't work where login didn't previously exist
 
     try:
         existing_id = result[0]
@@ -211,9 +182,31 @@ def update_db(s):
             VALUES ('%s', '%s', '%s', '%s', '%s', '%s')" % \
             (s['firstname'], s['lastname'], s['email'], s['username'], s['status'], today)
             )
-
     db.commit()
     db.close()
+
+
+def update_access_count(group):
+    db = get_db()
+    users = cdb.getUsers()
+    today = date.today()
+    count = 0
+    emails = []
+
+    if group == 'ConnectomeUsers':
+        q = "UPDATE access_stats SET count=%s,last_updated='%s' WHERE shortname='%s'" % \
+            (len(users), today, group)
+    else:
+        for u in users:
+            if has_group_membership(u['login'], group) and u['email'] not in emails:
+                emails.append(u['email'])
+                count += 1
+        q = "UPDATE access_stats SET count=%s,last_updated='%s' WHERE shortname='%s'" % \
+            (count, today, group)
+
+    db.execute(q)
+    db.commit()
+    # db.close()
 
 """
 >>> # Insert a date object into the database
@@ -229,10 +222,6 @@ def update_db(s):
 """
 
 if __name__ == '__main__':
-    #has_open_access('hilemtest6')
-    #has_restricted_access('hilemtest6')
-    #grant_restricted_access('mhileman')
-    #has_restricted_access('hilemtest6')
 
     firstname = 'Michael'.lower()
     lastname = 'Hileman'.lower()
