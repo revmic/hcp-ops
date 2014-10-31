@@ -2,6 +2,7 @@ from hcpxnat.interface import HcpInterface
 from email.mime.text import MIMEText
 from datetime import date
 from model import get_db
+from sqlite3 import OperationalError
 from config import CC_LIST  # Move to config file
 from app.views import g
 import ConfigParser
@@ -160,16 +161,18 @@ def update_db(s):
     today = date.today()
 
     # Check if this is an existing record and update instead of insert
-    result = db.execute(  # TODO - fix update
-        "SELECT id FROM restrictedaccess WHERE login='%s' AND email='%s'" % \
-        (s['username'], s['email'])
-        ).fetchone()  # Doesn't work where login didn't previously exist
+    # Also need to check if name and email is matching for cases where
+    # the user didn't have a connectome account
+    # This will update the first record, TODO - handle multiple results
+    result = db.execute(
+        "SELECT id FROM restrictedaccess WHERE firstname='%s' AND lastname='%s' AND email='%s'" % \
+        (s['firstname'], s['lastname'], s['email'])
+        ).fetchone()
 
     try:
         existing_id = result[0]
-    except TypeError:
+    except:
         existing_id = None
-    print "Existing ID:", existing_id
 
     if existing_id:
         q = "UPDATE restrictedaccess SET login='%s',email='%s',status='%s',status_updated='%s' WHERE id=%s" % \
@@ -177,12 +180,17 @@ def update_db(s):
         print q
         db.execute(q)
     else:
-        db.execute(
-            "INSERT INTO restrictedaccess (firstname, lastname, email, login, status, status_updated) \
+        q = "INSERT INTO restrictedaccess (firstname, lastname, email, login, status, status_updated) \
             VALUES ('%s', '%s', '%s', '%s', '%s', '%s')" % \
             (s['firstname'], s['lastname'], s['email'], s['username'], s['status'], today)
-            )
-    db.commit()
+        print q
+        db.execute(q)
+    try:
+        db.commit()
+    except OperationalError:
+        print "OperationalError on sqlite3 database. Retrying commit ..."
+        db.commit()
+
     db.close()
 
 
