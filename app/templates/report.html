@@ -1,17 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h3>Restricted Access Report</h3>
-<form method="post" class="form-horizontal" role="form" style="float:left">
-    {% for s in stats %}
-    <p>{{ s[1] }}: <b>{{ s[3] }}</b></p>
-    {% endfor %}
-    <button id="refresh" name="refresh_counts" class="btn btn-xs">
-        <span id="refresh_icon" class="glyphicon glyphicon-refresh"></span> Refresh Counts
-    </button>
-    <small><font color="gray">Last Updated: {{ stats[0][4] }}</font></small>
-    <hr>
-</form>
+<h3>Restricted Access Users</h3>
+{#<form method="post" class="form-horizontal" role="form" style="float:left">#}
+{#    {% for s in stats %}#}
+{#    <p>{{ s[1] }}: <b>{{ s[3] }}</b></p>#}
+{#    {% endfor %}#}
+{#    <button id="refresh" name="refresh_counts" class="btn btn-xs">#}
+{#        <span id="refresh_icon" class="glyphicon glyphicon-refresh"></span> Refresh Counts#}
+{#    </button>#}
+{#    <small><font color="gray">Last Updated: {{ stats[0][4] }}</font></small>#}
+{#    <hr>#}
+{#</form>#}
 <table class="table table-striped">
     <thead>
         <th>First Name</th>

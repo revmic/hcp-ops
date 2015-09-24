@@ -1,9 +1,10 @@
 from flask import render_template, request, g, session, redirect, url_for, flash
 from forms import RestrictedAccessForm, EmailForm
-from multiprocessing import Process
+# from multiprocessing import Process
 from hcprestricted import *
 from config import CC_LIST
 from app import app
+from model import get_mysql
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -95,7 +96,6 @@ def search():
         open_access = has_group_membership(session['username'], 
             'Phase2OpenUsers')
 
-
     ## Render email template ##
     generate_email_action = request.form.get('gen_email')
 
@@ -115,6 +115,7 @@ def search():
                             restricted_access=restricted_access,
                             gen_email=gen_email)
 
+
 @app.route('/email', methods=['GET', 'POST'])
 def email():
     form = EmailForm()
@@ -127,8 +128,7 @@ def email():
             flash("You forgot to enter a To: address.", 'warning')
             return redirect(url_for('email'))
 
-        send_to = []
-        send_to.append(form.email_to.data)
+        send_to = [form.email_to.data]
         retval = send_email(subject='Access to Restricted Data in ConnectomeDB',
                             recipients=send_to,
                             sender=form.email_from.data,
@@ -154,35 +154,113 @@ def email():
 
     return render_template('email.html', form=form)
 
+
 @app.route('/report', methods=['GET', 'POST'])
 def report():
     form = RestrictedAccessForm()
     db = get_db()
 
-    results = list()
-    query = db.execute("SELECT * FROM restrictedaccess ORDER BY lastname")
+    results = []
+    query = db.execute("SELECT * FROM restrictedaccess ORDER BY status_updated,lastname")
     for r in query:
         results.append(r)
 
-    stats = list()
-    query = db.execute("SELECT * FROM access_stats ORDER BY id")
-    for r in query:
-        stats.append(r)
-
     # Handle report counts refresh
-    if request.method == 'POST':
-        print stats
-        for stat in stats:
-            update_access_count(stat[2])
-        return redirect(url_for('report'))
-            # time.sleep(0.5)
-            # p = Process(target=update_access_count, args=(stat[2],))
-            # p.start()
-            # p.join()
+    # if request.method == 'POST':
+    #     print stats
+    #     for stat in stats:
+    #         update_access_count(stat[2])
+    #     return redirect(url_for('report'))
+        # time.sleep(0.5)
+        # p = Process(target=update_access_count, args=(stat[2],))
+        # p.start()
+        # p.join()
 
     db.close()
-    return render_template('report.html', results=results, stats=stats, form=form)
+    return render_template('report.html', results=results, form=form)
+
 
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     return render_template('config.html')
+
+
+@app.route('/stats', methods=['GET'])
+def statistics():
+    return render_template('stats.html',
+                           cdb_stats=get_cdb_stats(),
+                           cinab_stats=get_cinab_stats(),
+                           aspera_stats=get_aspera_stats())
+
+
+def get_cdb_stats():
+    db = get_db()
+    query = "SELECT * FROM access_stats ORDER BY id"
+    results = db.execute(query)
+    stats = []
+
+    for r in results:
+        stats.append(r)
+
+    return stats
+
+
+def get_cinab_stats():
+    """
+    Builds a map of CinaB stats to pass to the view
+    """
+    db = get_mysql()
+
+    cinab_stats = {
+        'customer_count': 0,
+        'domestic_customer_count': 0,
+        'intl_customer_count': 0,
+        'data_size': 0,
+        'total_orders': 0,
+        'total_drives': 0,
+    }
+
+    # Customer Count
+    q = ("SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status "
+         "FROM orders where (status !='incomplete') and (status!='failed') and (status!='refund') "
+         "GROUP BY customer_email ORDER BY customer_email")
+    r = db.execute(q)
+    cinab_stats['customer_count'] = len(r)
+    for item in r:
+        print item
+
+    # International Customers
+    q = ("SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status "
+         "FROM orders where (status !='incomplete') and (status!='failed') "
+         "and (status!='refund') and (shipping_country!='United States') "
+         "GROUP BY customer_email ORDER BY customer_email")
+    r = db.execute(q)
+    cinab_stats['intl_customer_count'] = len(r)
+
+    # Number of Drives & Data Size
+    q = ("SELECT inv.serial, inv.release_id, releases.data_size FROM drive_inventory as inv,releases "
+         "WHERE inv.drive_status='shipped' AND inv.release_id = releases.release_id GROUP BY serial")
+    r = db.execute(q)
+
+    cinab_stats['total_drives'] = len(r)
+
+    # Total Orders
+    q = ("SELECT status FROM orders WHERE (status !='incomplete') and (status != 'pending') "
+         "and (status!='failed') and (status!='refund') and (order_type='data')")
+    r = db.executge(q)
+    cinab_stats['total_orders'] = len(r)
+
+    cinab_stats['domestic_customer_count'] = \
+        cinab_stats['customer_count'] - cinab_stats['intl_customer_count']
+
+    return cinab_stats
+
+
+def get_aspera_stats():
+    pass
+
+    # Aspera
+    # ------
+    # Downloads to date:
+    # - SELECT SUM(f.bytes_written)/(1024*1024*1024*1024*1024) AS PB, COUNT(f.status) AS Files, COUNT(DISTINCT(s.cookie)) AS Users FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5';
+

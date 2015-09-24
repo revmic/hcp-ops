@@ -51,21 +51,22 @@ def search_cdb(firstname=None, lastname=None):
 
 
 def ad_bind():
-    ldap_uri=config.get('ldap', 'uri')
-    bind_dn="cn=HCPDB Read Write,ou=Service Accounts,ou=HCP Users,dc=hcp,dc=mir"
-    ldap_pass=config.get('ldap', 'password')
+    ldap_uri = config.get('ldap', 'uri')
+    bind_dn = "cn=HCPDB Read Write,ou=Service Accounts,ou=HCP Users,dc=hcp,dc=mir"
+    ldap_pass = config.get('ldap', 'password')
     ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
     try:
         l = ldap.initialize(ldap_uri)
-    except ldap.LDAPError,e:
+    except ldap.LDAPError, e:
         print e
+        return None
 
     l.protocol_version = ldap.VERSION3
     l.set_option(ldap.OPT_REFERRALS, 0)
 
     try:
-        l.bind_s(bind_dn,ldap_pass)
+        l.bind_s(bind_dn, ldap_pass)
     except ldap.LDAPError, e:
         print e
     else:
@@ -87,7 +88,7 @@ def has_group_membership(username, ad_group):
     #     l = ad_bind()
     l = get_ldap()
     base_dn = "dc=hcp,dc=mir"
-    filter='(name=%s)' % username
+    filter = '(name=%s)' % username
     retrieve_attrs = None
     scope = ldap.SCOPE_SUBTREE
 
@@ -119,7 +120,7 @@ def grant_restricted_access(username):
     # if not l:
     #     l = ad_bind()
     l = get_ldap()
-    #base_dn="dc=hcp,dc=mir"
+    # base_dn="dc=hcp,dc=mir"
     user_dn = 'CN=%s,OU=Members,OU=HCP Users,DC=hcp,DC=mir' % username
     group_dn = 'CN=Phase2ControlledUsers,OU=Web Security Groups,OU=HCP Users,DC=hcp,DC=mir'
     add_member = [(ldap.MOD_ADD, 'member', user_dn.encode('ascii','ignore'))]
@@ -144,7 +145,7 @@ def send_email(subject, recipients, sender, message):
     msg['To'] = ', '.join(recipients)
     msg['CC'] = ', '.join(CC_LIST)
 
-    session = smtplib.SMTP('mail.nrg.wustl.edu')
+    session = smtplib.SMTP('irony.wusm.wustl.edu')
     try:
         session.sendmail(sender, recipients+CC_LIST, msg.as_string())
     except smtplib.SMTPException, e:
@@ -161,12 +162,12 @@ def update_db(s):
     today = date.today()
 
     # Check if this is an existing record and update instead of insert
-    # Also need to check if name and email is matching for cases where
+    # Need to check if name and email is matching for cases where
     # the user didn't have a connectome account
     # This will update the first record, TODO - handle multiple results
     result = db.execute(
-        "SELECT id FROM restrictedaccess WHERE firstname='%s' AND lastname='%s' AND email='%s'" % \
-        (s['firstname'], s['lastname'], s['email'])
+        "SELECT id FROM restrictedaccess WHERE lastname='%s' AND email='%s'" % \
+        (s['lastname'], s['email'])
         ).fetchone()
 
     try:
@@ -194,28 +195,6 @@ def update_db(s):
     db.close()
 
 
-def update_access_count(group):
-    db = get_db()
-    users = cdb.getUsers()
-    today = date.today()
-    count = 0
-    emails = []
-
-    if group == 'ConnectomeUsers':
-        q = "UPDATE access_stats SET count=%s,last_updated='%s' WHERE shortname='%s'" % \
-            (len(users), today, group)
-    else:
-        for u in users:
-            if has_group_membership(u['login'], group) and u['email'] not in emails:
-                emails.append(u['email'])
-                count += 1
-        q = "UPDATE access_stats SET count=%s,last_updated='%s' WHERE shortname='%s'" % \
-            (count, today, group)
-
-    db.execute(q)
-    db.commit()
-    # db.close()
-
 """
 >>> # Insert a date object into the database
 >>> today = date.today()
@@ -234,6 +213,7 @@ if __name__ == '__main__':
     firstname = 'Michael'.lower()
     lastname = 'Hileman'.lower()
     matches, possible_matches = search_cdb(firstname, lastname)
+    print matches
 
     # if matches: print "Matches:"
     # for match in matches:

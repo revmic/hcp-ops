@@ -4,13 +4,14 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="{{ url_for('static', filename="img/favicon.ico") }}">"
+    <link rel="shortcut icon" href="{{ url_for('static', filename="img/favicon.ico") }}">
 
     <title>HCP Restricted Access</title>
 
-    <link href={{ url_for('static', filename="css/bootstrap.min.css") }} rel="stylesheet">
-    <link href={{ url_for('static', filename="js/bootstrap.min.js") }} rel="stylesheet">
-    <link href={{ url_for('static', filename="css/sticky-footer-navbar.css") }} rel="stylesheet">
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css") }}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/sticky-footer-navbar.css") }}>
+    <link rel="stylesheet" href={{ url_for('static', filename="js/bootstrap.min.js") }}>
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
   </head>
 
   <body>
@@ -24,14 +25,14 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <p style="float:left; padding-right:10px;"><img src={{ url_for('static', filename="img/hcp-brain.png") }} width="60" height="40" alt="brain"></p>
+          <p style="float:left; padding-right:10px; margin-top:5px"><img width="55" height="40" src={{ url_for('static', filename="img/hcp-brain.png") }}></p>
           <a class="navbar-brand" href="{{ url_for('search') }}">HCP Restricted Access</a>
         </div>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li {% if request.path == "/search" %}class="active"{% endif %}><a href="{{ url_for('search') }}">Search Users</a></li>
             <li {% if request.path == "/report" %}class="active"{% endif %}><a href="{{ url_for('report') }}">Access Report</a></li>
-            <li {% if request.path == "/config" %}class="active"{% endif %}><a href="{{ url_for('config') }}">Configuration</a></li>
+{#            <li {% if request.path == "/config" %}class="active"{% endif %}><a href="{{ url_for('config') }}">Configuration</a></li>#}
             <li><a href="https://db.humanconnectome.org/app/template/XDATScreen_admin.vm" target="_blank">Connectome User Page</a></li>
           </ul>
         </div><!--/.nav-collapse -->
@@ -39,7 +40,6 @@
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
     <script src={{ url_for('static', filename="js/bootstrap.min.js") }}></script>
 
     <!-- Begin page content -->
