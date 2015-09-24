@@ -4,9 +4,13 @@ import ConfigParser
 
 from app import app
 from app.views import g
+from config import ENV
 
 config = ConfigParser.ConfigParser()
-config.read('/Users/michael/.hcprestricted')
+if ENV == 'prod':
+    config.read('/root/.hcprestricted')
+else:
+    config.read('/Users/michael/.hcprestricted')
 
 
 ''' MODEL Methods '''

@@ -3,14 +3,17 @@ from email.mime.text import MIMEText
 from datetime import date
 from model import get_db
 from sqlite3 import OperationalError
-from config import CC_LIST  # Move to config file
+from config import CC_LIST, ENV  # Move to config file
 from app.views import g
 import ConfigParser
 import smtplib
 import ldap
 
 config = ConfigParser.ConfigParser()
-config.read('/Users/michael/.hcprestricted')
+if ENV == 'prod':
+    config.read('/root/.hcprestricted')
+else:
+    config.read('/Users/michael/.hcprestricted')
 
 cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
                    username=config.get('hcpxnat', 'username'),

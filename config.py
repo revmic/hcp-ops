@@ -1,4 +1,5 @@
 import os
+import socket
 import ConfigParser
 ## TODO: Move this all to .hcprestricted config file
 
@@ -20,3 +21,8 @@ DEBUG = True
 SECRET_KEY = config.get('db', 'secret_key')
 USERNAME = config.get('db', 'username')
 PASSWORD = config.get('db', 'password')
+
+if 'hcp-ops' in socket.gethostname():
+    ENV = 'prod'
+else:
+    ENV = 'dev'
