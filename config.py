@@ -1,28 +1,24 @@
 import os
 import socket
 import ConfigParser
-## TODO: Move this all to .hcprestricted config file
-
-basedir = os.path.abspath(os.path.dirname(__file__))
-config = ConfigParser.ConfigParser()
-config.read('/Users/michael/.hcprestricted')
-
-CSRF_ENABLED = True
-SECRET_KEY = 'Not so secret'
-
-CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.wustl.edu']
-#CC_LIST = ['mhilema@gmail.com']
-#CC_LIST = []
-
-''' DATABASE '''
-# Load default config and override config from an environ var
-DATABASE = config.get('db', 'location')
-DEBUG = True
-SECRET_KEY = config.get('db', 'secret_key')
-USERNAME = config.get('db', 'username')
-PASSWORD = config.get('db', 'password')
 
 if 'hcp-ops' in socket.gethostname():
     ENV = 'prod'
 else:
     ENV = 'dev'
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+config = ConfigParser.ConfigParser()
+config_path = os.path.join(os.path.expanduser("~"), '.hcprestricted')
+config.read(config_path)
+
+CSRF_ENABLED = True
+SECRET_KEY = config.get('db', 'secret_key')
+DEBUG = True
+
+CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.wustl.edu']
+# CC_LIST = ['mhilema@gmail.com']
+# CC_LIST = []
+
+# PROJECTS = ['HCP_500', 'MGH_DIFF']
+

@@ -16,11 +16,12 @@
 </style>
 
 <div class="col-sm-8 col-sm-offset-2" style="padding-top:10px">
+    <!-- USER AND DUTS -->
     <div class="panel panel-default">
       <!-- Default panel contents -->
         <div class="panel-heading">
             <img width="55" height="40" src={{ url_for('static', filename="img/hcp-brain.png") }}>
-            <h4>ConnectomeDB Users and Data Use Terms</h4>
+            <h4>ConnectomeDB Users</h4>
         </div>
 
         <table class="table">
@@ -32,6 +33,51 @@
         </table>
     </div>
 
+    <!-- WORLD DISTRIBUTION -->
+    <div class="panel panel-default">
+        <!-- Default panel contents -->
+        <div class="panel-heading">
+            <i class="fa fa-3x fa-globe pull-left"></i><h4> Geographic Distribution of Shared Data</h4>
+        </div>
+
+{#        <img class="img-responsive" src={{ url_for('static', filename="img/worldmap-mockup.png") }}>#}
+        <div id="data-dist" style="height: 500px; min-width: 310px; max-width: 900px; margin: 0 auto"></div>
+    </div>
+
+    <!-- ASPERA DOWNLOADS -->
+    <div class="panel panel-default">
+        <!-- Default panel contents -->
+        <div class="panel-heading">
+            <img width="40" height="40" src={{ url_for('static', filename="img/aspera.png") }}>
+            <h4>Aspera Downloads</h4>
+{#            <span class="pull-right" style="position: relative; top:-40px">#}
+{#                <a href="#" data-toggle="tooltip" data-placement="top" title="describe status">#}
+{#                    Server Status <i class="fa fa-2x fa-check-circle-o" style="color:green; position:relative; top:5px"></i>#}
+{#                </a>#}
+{#            </span>#}
+        </div>
+
+        <div>
+            <h5 class="text-center">To Date</h5>
+            <ul class="list-group">
+                <li class="list-group-item"><i class="fa fa-database"></i>
+                    <span class="item-info"><b>{{ aspera_stats['petabytes'] }}</b> Petabytes</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-file"></i>
+                    <span class="item-info"><b>{{ "{:,.0f}".format(aspera_stats['files']) }}</b> Files</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-users"></i>
+                    <span class="item-info"><b>{{ aspera_stats['users'] }}</b> Distinct Users</span>
+                </li>
+            </ul>
+        </div>
+
+{#        <div id="aspera-gb-day" style="min-width: 310px; height: 400px; margin: 0 auto"></div>#}
+
+        <div id="aspera-month" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    </div>
+
+    <!-- CINAB ORDERS -->
     <div class="panel panel-default">
     <!-- Default panel contents -->
         <div class="panel-heading">
@@ -41,6 +87,9 @@
 
         <div>
             <ul class="list-group">
+                <li class="list-group-item"><i class="fa fa-database"></i>
+                    <span class="item-info"><b>{{ cinab_stats['data_size'] }}</b> Petabytes of data</span>
+                </li>
                 <li class="list-group-item"><i class="fa fa-bars"></i>
                     <span class="item-info"><b>{{ cinab_stats['total_orders'] }}</b> orders</span>
                 </li>
@@ -54,56 +103,17 @@
                     <span class="item-info"><b>{{ cinab_stats['intl_customer_count'] }}</b> international</span>
                 </li>
                 <li class="list-group-item"><i class="fa fa-users"></i>
-                    <span class="item-info"><b>--</b> different countries shipped to</span>
+                    <span class="item-info"><b>{{ cinab_stats['countries'] }}</b> different countries shipped to</span>
                 </li>
                 <li class="list-group-item"><i class="fa fa-hdd-o"></i>
                     <span class="item-info"><b>{{ cinab_stats['total_drives'] }}</b> drives</span>
-                </li>
-                <li class="list-group-item"><i class="fa fa-database"></i>
-                    <span class="item-info"><b>{{ cinab_stats['data_size'] }}</b> Petabytes of data</span>
                 </li>
             </ul>
         </div>
 
     </div>
 
-    <div class="panel panel-default">
-        <!-- Default panel contents -->
-        <div class="panel-heading">
-            <img width="40" height="40" src={{ url_for('static', filename="img/aspera.png") }}>
-            <h4>Aspera Downloads</h4>
-            <span class="pull-right" style="position: relative; top:-40px">
-                <a href="#" data-toggle="tooltip" data-placement="top" title="describe status">
-                    Server Status <i class="fa fa-2x fa-check-circle-o" style="color:green; position:relative; top:5px"></i>
-                </a>
-            </span>
-        </div>
-
-        <div style="padding:20px 60px 20px 60px">
-            <h5>Downloads to date</h5>
-
-            <!-- Table -->
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Petabytes</th><th>Files</th><th>Users</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1.6232</td><td>1375327</td><td>2368</td>
-                    </tr>
-                </tbody>
-            </table>
-
-        </div>
-
-        <img class="img-responsive" src={{ url_for('static', filename="img/hcp-aspera-gb-day.png") }}>
-
-        <img class="img-responsive" src={{ url_for('static', filename="img/hcp-aspera-tb-month.png") }}>
-    </div>
 </div>
-
 
 {% endblock %}
 

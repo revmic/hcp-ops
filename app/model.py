@@ -1,16 +1,14 @@
+import os
 import sqlite3
 import pymysql
 import ConfigParser
 
 from app import app
 from app.views import g
-from config import ENV
 
 config = ConfigParser.ConfigParser()
-if ENV == 'prod':
-    config.read('/root/.hcprestricted')
-else:
-    config.read('/Users/michael/.hcprestricted')
+config_path = os.path.join(os.path.expanduser("~"), '.hcprestricted')
+config.read(config_path)
 
 
 ''' MODEL Methods '''
@@ -18,16 +16,34 @@ else:
 
 def connect_db():
     rv = sqlite3.connect(config.get('db', 'location'))
-    # rv = sqlite3.connect('/Users/michael/Development/hcp_restricted/db/restricted.db')
     rv.row_factory = sqlite3.Row
     return rv
 
 
-def connect_mysql():
+def connect_cinab():
     cnx = pymysql.connect(host=config.get('mysql', 'host'),
                           user=config.get('mysql', 'user'),
                           passwd=config.get('mysql', 'passwd'),
-                          db=config.get('mysql', 'db'))
+                          db=config.get('mysql', 'db'),
+                          charset="utf8")
+    return cnx.cursor()
+
+
+def connect_aspera_geo():
+    cnx = pymysql.connect(host=config.get('aspera', 'host'),
+                          user=config.get('aspera', 'user'),
+                          passwd=config.get('aspera', 'passwd'),
+                          db=config.get('aspera', 'geodb'),
+                          charset="utf8")
+    return cnx.cursor()
+
+
+def connect_aspera_stats():
+    cnx = pymysql.connect(host=config.get('aspera', 'host'),
+                          user=config.get('aspera', 'user'),
+                          passwd=config.get('aspera', 'passwd'),
+                          db=config.get('aspera', 'statsdb'),
+                          charset="utf8")
     return cnx.cursor()
 
 
@@ -49,10 +65,22 @@ def get_db():
     return g.sqlite_db
 
 
-def get_mysql():
-    if not hasattr(g, 'mysql_db'):
-        g.mysql_db = connect_mysql()
+def get_db_cinab():
+    if not hasattr(g, 'cinab_db'):
+        g.mysql_db = connect_cinab()
     return g.mysql_db
+
+
+def get_db_aspera_geo():
+    if not hasattr(g, 'aspera_db_geo'):
+        g.aspera_db_geo = connect_aspera_geo()
+    return g.aspera_db_geo
+
+
+def get_db_aspera_stats():
+    if not hasattr(g, 'aspera_db_stats'):
+        g.aspera_db_stats = connect_aspera_stats()
+    return g.aspera_db_stats
 
 
 @app.teardown_appcontext
@@ -60,5 +88,9 @@ def close_db(error):
     # print error
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
-    if hasattr(g, 'mysql_db'):
-        g.mysql_db.close()
+    if hasattr(g, 'cinab_db'):
+        g.cinab_db.close()
+    if hasattr(g, 'aspera_db_geo'):
+        g.aspera_db_geo.close()
+    if hasattr(g, 'aspera_db_stats'):
+        g.aspera_db_stats.close()

@@ -3,17 +3,15 @@ from email.mime.text import MIMEText
 from datetime import date
 from model import get_db
 from sqlite3 import OperationalError
-from config import CC_LIST, ENV  # Move to config file
+from config import CC_LIST, ENV, config  # Move to config file
 from app.views import g
 import ConfigParser
 import smtplib
 import ldap
+import os
 
-config = ConfigParser.ConfigParser()
-if ENV == 'prod':
-    config.read('/root/.hcprestricted')
-else:
-    config.read('/Users/michael/.hcprestricted')
+# config = ConfigParser.ConfigParser()
+# config.read(os.path.join(os.path.expanduser('~'), '.hcprestricted'))
 
 cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
                    username=config.get('hcpxnat', 'username'),
@@ -148,7 +146,7 @@ def send_email(subject, recipients, sender, message):
     msg['To'] = ', '.join(recipients)
     msg['CC'] = ', '.join(CC_LIST)
 
-    session = smtplib.SMTP('irony.wusm.wustl.edu')
+    session = smtplib.SMTP('mail.nrg.wustl.edu')
     try:
         session.sendmail(sender, recipients+CC_LIST, msg.as_string())
     except smtplib.SMTPException, e:
@@ -215,8 +213,8 @@ if __name__ == '__main__':
 
     firstname = 'Michael'.lower()
     lastname = 'Hileman'.lower()
-    matches, possible_matches = search_cdb(firstname, lastname)
-    print matches
+    m, pm = search_cdb(firstname, lastname)
+    print m
 
     # if matches: print "Matches:"
     # for match in matches:

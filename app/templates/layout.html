@@ -10,7 +10,7 @@
 
     <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css") }}>
     <link rel="stylesheet" href={{ url_for('static', filename="css/sticky-footer-navbar.css") }}>
-    <link rel="stylesheet" href={{ url_for('static', filename="js/bootstrap.min.js") }}>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
   </head>
 
@@ -31,7 +31,7 @@
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li {% if request.path == "/search" %}class="active"{% endif %}><a href="{{ url_for('search') }}">Search Users</a></li>
-            <li {% if request.path == "/report" %}class="active"{% endif %}><a href="{{ url_for('report') }}">Access Report</a></li>
+            <li {% if request.path == "/restricted/report" %}class="active"{% endif %}><a href="{{ url_for('report') }}">Access Report</a></li>
 {#            <li {% if request.path == "/config" %}class="active"{% endif %}><a href="{{ url_for('config') }}">Configuration</a></li>#}
             <li><a href="https://db.humanconnectome.org/app/template/XDATScreen_admin.vm" target="_blank">Connectome User Page</a></li>
           </ul>
