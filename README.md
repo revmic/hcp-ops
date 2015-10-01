@@ -1,4 +1,6 @@
-hcp_restricted
+hcp-ops
 ==============
+Web applications supporting Human Connectome Project operations including:
 
-Web app to grant HCP restricted access
+- Granting restricted access
+- Collecting and visualizing data usage
