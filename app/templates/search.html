@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+    <br>
 <form method="post" action="">
     <!-- Search Text Input -->
     <div class="control-group">
@@ -54,21 +55,21 @@
     <div class="alert alert-success">
         <span class="glyphicon glyphicon-thumbs-up"></span>
         <b>{{ g.username }}</b> has accepted open access DUT. Grant Restricted Access?
-        <button name="grant_restricted" class="btn btn-success" value="granted" style="float:right;">
+        <button name="grant_restricted" class="btn btn-success" value="granted" style="float:right; position:relative; bottom:6px">
             <span class="glyphicon glyphicon-plus"></span> Grant Restricted Access
         </button>
     </div>
     {% elif session['username'] and open_access and restricted_access %}
     <div class="alert alert-success"><span class="glyphicon glyphicon-check"></span>
         <b>{{ session['username'] }}</b> has restricted access!
-        <button name="revoke_restricted" class="btn btn-danger" value="revoke" style="float:right;padding-bottom2px;">
+        <button name="revoke_restricted" class="btn btn-danger" value="revoke" style="float:right; position:relative; bottom:6px">
             <span class="glyphicon glyphicon-minus"></span> Revoke Access (not implemented)
         </button>
     </div>
     {% endif %}
 
     {% if gen_email %}
-    <div class="control-group">
+    <div class="control-group" style="padding-bottom: 50px">
       <div class="controls">
           <button name="gen_email" value="gen" class="btn btn-primary"><span class="glyphicon glyphicon-envelope"></span> Generate Email As</button>
           {{ form.generate_email_as }}

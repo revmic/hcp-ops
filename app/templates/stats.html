@@ -1,0 +1,120 @@
+{% extends "layout-stats.html" %}
+{% block content %}
+
+<style>
+    .item-info {
+        position: absolute;
+        left: 50px;
+    }
+    .panel-heading img {
+        float: left;
+    }
+    .panel-heading h4 {
+        position: relative;
+        left: 5px;
+    }
+</style>
+
+<div class="col-sm-8 col-sm-offset-2" style="padding-top:10px">
+    <!-- USER AND DUTS -->
+    <div class="panel panel-default">
+      <!-- Default panel contents -->
+        <div class="panel-heading">
+            <img width="55" height="40" src={{ url_for('static', filename="img/hcp-brain.png") }}>
+            <h4>ConnectomeDB Users</h4>
+        </div>
+
+        <table class="table">
+            {% for stat in cdb_stats %}
+            <tr>
+                <td>{{ stat[1] }}</td><td><b>{{ stat[3] }}</b></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- WORLD DISTRIBUTION -->
+    <div class="panel panel-default">
+        <!-- Default panel contents -->
+        <div class="panel-heading">
+            <i class="fa fa-3x fa-globe pull-left"></i><h4> Geographic Distribution of Shared Data</h4>
+        </div>
+
+{#        <img class="img-responsive" src={{ url_for('static', filename="img/worldmap-mockup.png") }}>#}
+        <div id="data-dist" style="height: 500px; min-width: 310px; max-width: 900px; margin: 0 auto"></div>
+    </div>
+
+    <!-- ASPERA DOWNLOADS -->
+    <div class="panel panel-default">
+        <!-- Default panel contents -->
+        <div class="panel-heading">
+            <img width="40" height="40" src={{ url_for('static', filename="img/aspera.png") }}>
+            <h4>Aspera Downloads</h4>
+{#            <span class="pull-right" style="position: relative; top:-40px">#}
+{#                <a href="#" data-toggle="tooltip" data-placement="top" title="describe status">#}
+{#                    Server Status <i class="fa fa-2x fa-check-circle-o" style="color:green; position:relative; top:5px"></i>#}
+{#                </a>#}
+{#            </span>#}
+        </div>
+
+        <div>
+            <h5 class="text-center">To Date</h5>
+            <ul class="list-group">
+                <li class="list-group-item"><i class="fa fa-database"></i>
+                    <span class="item-info"><b>{{ aspera_stats['petabytes'] }}</b> Petabytes</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-file"></i>
+                    <span class="item-info"><b>{{ "{:,.0f}".format(aspera_stats['files']) }}</b> Files</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-users"></i>
+                    <span class="item-info"><b>{{ aspera_stats['users'] }}</b> Distinct Users</span>
+                </li>
+            </ul>
+        </div>
+
+{#        <div id="aspera-gb-day" style="min-width: 310px; height: 400px; margin: 0 auto"></div>#}
+
+        <div id="aspera-month" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    </div>
+
+    <!-- CINAB ORDERS -->
+    <div class="panel panel-default">
+    <!-- Default panel contents -->
+        <div class="panel-heading">
+            <img width="55" height="40" src={{ url_for('static', filename="img/cinab-box.png") }}>
+            <h4>Connectome-in-a-Box Orders</h4>
+        </div>
+
+        <div>
+            <ul class="list-group">
+                <li class="list-group-item"><i class="fa fa-database"></i>
+                    <span class="item-info"><b>{{ cinab_stats['data_size'] }}</b> Petabytes of data</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-bars"></i>
+                    <span class="item-info"><b>{{ cinab_stats['total_orders'] }}</b> orders</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-users"></i>
+                    <span class="item-info"><b>{{ cinab_stats['customer_count'] }}</b> unique customers</span>
+                </li>
+                <li class="list-group-item"><img width="20" height="12" src="{{ url_for('static', filename="img/icon-us-map.png") }}" style="color:gray"/>
+                    <span class="item-info"><b>{{ cinab_stats['domestic_customer_count'] }}</b> domestic</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-globe"></i>
+                    <span class="item-info"><b>{{ cinab_stats['intl_customer_count'] }}</b> international</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-users"></i>
+                    <span class="item-info"><b>{{ cinab_stats['countries'] }}</b> different countries shipped to</span>
+                </li>
+                <li class="list-group-item"><i class="fa fa-hdd-o"></i>
+                    <span class="item-info"><b>{{ cinab_stats['total_drives'] }}</b> drives</span>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
