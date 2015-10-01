@@ -274,9 +274,10 @@ def get_cinab_stats():
     #     print item
 
     # International Customers
+    # SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status FROM orders where (status !='incomplete') and (status!='failed') and (status!='refund') and (shipping_country!='United States') and order_type='data' GROUP BY customer_email ORDER BY customer_email;
     q = ("SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status "
          "FROM orders where (status !='incomplete') and (status!='failed') "
-         "and (status!='refund') and (shipping_country!='United States') "
+         "and (status!='refund') and (shipping_country!='United States') and order_type='data' "
          "GROUP BY customer_email ORDER BY customer_email")
     r = db.execute(q)
     cinab_stats['intl_customer_count'] = r

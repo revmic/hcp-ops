@@ -4,6 +4,10 @@ __pycache__/
 .idea
 *.db
 hcp_restricted_import.sql
+backups/
+venv/
+*.json
+.DS_Store
 
 # C extensions
 *.so

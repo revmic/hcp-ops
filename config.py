@@ -20,5 +20,6 @@ CC_LIST = ['scurtiss@brainvis.wustl.edu', 'hilemanm@mir.wustl.edu', 'hodgem@mir.
 # CC_LIST = ['mhilema@gmail.com']
 # CC_LIST = []
 
-# PROJECTS = ['HCP_500', 'MGH_DIFF']
+# This is the string used in SQL query to determine project from filename
+PROJECTS = ['HCP\_', 'MGH\_']
 
