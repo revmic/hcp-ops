@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from collections import OrderedDict
 from iso3166 import countries
 import json
 
@@ -8,30 +9,37 @@ from config import basedir
 from app import app
 
 # TODO - last_updated json
+app.config["JSON_SORT_KEY"] = False
 
 
 def collect_connectomedb_stats():
     print "\n", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), \
-        "-- Updating ConnectomeDB Stats"
+        "-- Updating DUT Stats"
     # AD group names that we want updated
-    groups = ['ConnectomeUsers', 'Phase2OpenUsers',
-              'Phase2ControlledUsers', 'MGH_HCPUsers']
+    group_map = {
+        'HCP': ['Phase2OpenUsers', 'Phase2ControlledUsers'],
+        'MGH': ['MGH_HCPUsers']
+    }
+    ldap_name_map = {
+        'Phase2OpenUsers': 'Open Access',
+        'Phase2ControlledUsers': 'Restricted Access',
+        'MGH_HCPUsers': 'Open Access'
+    }
+
+    stats = {}
+
+    users = cdb.getUsers()
+    stats['ConnectomeDB'] = [{'users': len(users)}]
 
     with app.app_context():
-        sqlite_db = get_db()
+        for project, groups in group_map.iteritems():
+            stats[project] = []
 
-        for group in groups:
-            print "-- Updating count for", group
-            users = cdb.getUsers()
-            today = date.today()
-            count = 0
-            emails = []
+            for group in groups:
+                print "-- Updating count for", group
+                count = 0
+                emails = []
 
-            if group == 'ConnectomeUsers':
-                q = "UPDATE access_stats SET count=%s," \
-                    "last_updated='%s' WHERE shortname='%s'" % \
-                    (len(users), today, group)
-            else:
                 for u in users:
                     # Count if the user has AD group membership
                     # and hasn't already been counted
@@ -39,73 +47,94 @@ def collect_connectomedb_stats():
                             and u['email'] not in emails:
                         emails.append(u['email'])
                         count += 1
-                q = "UPDATE access_stats SET count=%s," \
-                    "last_updated='%s' WHERE shortname='%s'" % \
-                    (count, today, group)
 
-            print q
-            sqlite_db.execute(q)
-            sqlite_db.commit()
+                group_stat = {ldap_name_map[group]: count}
+                stats[project].append(group_stat)
+
+    print stats
+
+    with open(os.path.join(basedir, 'db', 'dut.json'), 'w') as outfile:
+        json.dump(stats, outfile)
 
 
 def collect_aspera_stats():
     print "\n", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), \
         "-- Updating Aspera Download History"
 
-    # update_download_history()
-
     with app.app_context():
+
         aspera_db = get_db_aspera_stats()
 
-        # Downloads to date - Petabytes, Files, Users
-        # SELECT SUM(f.bytes_written)/(1024*1024*1024*1024*1024) AS PB, COUNT(f.status) AS Files, COUNT(DISTINCT(s.cookie)) AS Users FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5';
-        q = ("SELECT SUM(f.bytes_written)/(1024*1024*1024*1024*1024) AS PB, "
-                "COUNT(f.status) AS Files, "
-                "COUNT(DISTINCT(s.cookie)) AS Users "
-             "FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id "
-             "WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5'")
+        # Downloads to date - Month, Year, Size, Files, Users
+        queries = [
+            ("All", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)"),
+            ("HCP", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND (f.file_fullpath LIKE '%HCP\_%' OR f.file_fullpath LIKE '%LS\_%' OR f.file_fullpath REGEXP 'live/[0-9][0-9][0-9][0-9][0-9][0-9]') AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)"),
+            ("MGH", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND (f.file_fullpath LIKE '%MGH\_%') AND f.file_basename NOT LIKE '%.md5'")
+        ]
 
-        aspera_db.execute(q)
+        results = []
 
-        aspera_downloads = {}
+        for query in queries:
+            print query
+            proj = query[0]
+            q = query[1]
 
-        for row in aspera_db:
-            aspera_downloads['petabytes'] = float(row[0])
-            aspera_downloads['files'] = row[1]
-            aspera_downloads['users'] = row[2]
+            aspera_db.execute(q)
 
-        with open(os.path.join(basedir, 'db', 'aspera-downloads.json'), 'w') as outfile:
-            json.dump(aspera_downloads, outfile)
+            bytes_ = []
+            files = []
+            users = []
+            months = []
 
-        # Month, Year, TB, Users
-        # SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written)/(1024*1024*1024*1024) AS Gigabytes, COUNT(DISTINCT(s.cookie)) AS 'Distinct Users' FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' GROUP BY year(s.started_at), month(s.started_at);
+            for row in aspera_db:
+                month = "%s-%s" % (row[0], row[1])
+                months.append(month)
+                bytes_.append(int(row[2]))
+                users.append(row[3])
+                files.append(row[4])
 
-        q = ("SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) "
-             "AS Month, SUM(f.bytes_written)/(1024*1024*1024*1024) AS Gigabytes, "
-             "COUNT(DISTINCT(s.cookie)) AS 'Distinct Users', COUNT(f.status) AS Files "
-             "FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id "
-             "WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5' "
-             "GROUP BY year(s.started_at), month(s.started_at)")
+            # Derived data
+            terabytes = []
+            files_thousands = []
 
-        aspera_db.execute(q)
+            for i in bytes_:
+                terabytes.append(float(i)/(1024*1024*1024*1024))
+            for i in files:
+                files_thousands.append(i/1000)
 
-        months = []
-        terabytes = []
-        users = []
-        files = []
+            data = OrderedDict([
+                ('project', proj),
+                ('total_bytes', sum(bytes_)),
+                ('total_files', sum(files)),
+                ('total_users', sum(users)),
+                ('bytes', bytes_),
+                ('terabytes', terabytes),
+                ('files', files),
+                ('files_thousands', files_thousands),
+                ('users', users),
+                ('months', months)
+            ])
+            # data = {
+            #     'project': proj,
+            #     'total_bytes': sum(bytes_),
+            #     'total_files': sum(files),
+            #     'total_users': sum(users),
+            #     'bytes': bytes_,
+            #     'terabytes': terabytes,
+            #     'files': files,
+            #     'files_thousands': files_thousands,
+            #     'users': users,
+            #     'months': months
+            # }
+            results.append(data)
 
-        for row in aspera_db:
-            m = "%s-%s" % (row[0], row[1])
-            months.append(m)
-            terabytes.append(float(row[2]))
-            users.append(row[3])
-            files.append(row[4]/1000)
+        json_object = {
+            'results': results,
+            'updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
 
-    # Create JSON of download stats
-    json_data = {'months': months, 'terabytes': terabytes, 'users': users, 'files': files}
-
-    with open(os.path.join(basedir, 'db', 'aspera.json'), 'w') as outfile:
-        json.dump(json_data, outfile)
+        with open(os.path.join(basedir, 'db', 'aspera.json'), 'w') as outfile:
+            json.dump(json_object, outfile, sort_keys=False)
 
 
 def collect_geolocation():
@@ -272,13 +301,13 @@ def get_country_iso(country_name):
 
 if __name__ == '__main__':
     # Update Connectome user and DUT counts
-    collect_connectomedb_stats()
+    # collect_connectomedb_stats()
 
     # Collect download history
     collect_aspera_stats()
 
     # Get Aspera downloads and CinaB orders by location
-    collect_geolocation()
+    # collect_geolocation()
 
     # Connectome-in-a-Box order history are direct queries to MediaTemple db
     # hosted for http://orders.humanconnectome.org

@@ -2,8 +2,8 @@ from functools import wraps
 
 from flask import (render_template, request, Response, g, session, redirect,
                    url_for, flash, jsonify, json, )
-from forms import RestrictedAccessForm, EmailForm
 
+from forms import RestrictedAccessForm, EmailForm
 from hcprestricted import *
 from config import CC_LIST, basedir, config as cp
 from app import app
@@ -222,27 +222,19 @@ def geolocation():
 def aspera_downloads():
     json_data = open(os.path.join(basedir, "db", "aspera.json"), "r")
     json_obj = json.load(json_data)
-    return jsonify(results=json_obj)
+    return jsonify(json_obj)
 
 
 @app.route('/stats', methods=['GET'])
 def statistics():
-    return render_template('stats.html',
-                           cdb_stats=get_cdb_stats(),
-                           cinab_stats=get_cinab_stats(),
-                           aspera_stats=get_aspera_stats())
+    cdb_file = open(os.path.join(basedir, "db", "dut.json"), "r")
+    cdb_stats = json.load(cdb_file)
 
+    aspera_file = open(os.path.join(basedir, "db", "aspera.json"), "r")
+    aspera_stats = json.load(aspera_file)
 
-def get_cdb_stats():
-    db = get_db()
-    query = "SELECT * FROM access_stats ORDER BY id"
-    results = db.execute(query)
-    stats = []
-
-    for r in results:
-        stats.append(r)
-
-    return stats
+    return render_template('stats.html', cinab_stats=get_cinab_stats(),
+                           cdb_stats=cdb_stats, aspera_stats=aspera_stats)
 
 
 def get_cinab_stats():
@@ -310,9 +302,3 @@ def get_cinab_stats():
         cinab_stats['customer_count'] - cinab_stats['intl_customer_count']
 
     return cinab_stats
-
-
-def get_aspera_stats():
-    json_data = open(os.path.join(basedir, "db", "aspera-downloads.json"), "r")
-    json_obj = json.load(json_data)
-    return json_obj

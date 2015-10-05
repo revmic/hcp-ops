@@ -1,10 +1,14 @@
 {% extends "layout-stats.html" %}
+
 {% block content %}
 
 <style>
     .item-info {
         position: absolute;
         left: 50px;
+    }
+    .item-pad {
+        padding-left: 20px;
     }
     .panel-heading img {
         float: left;
@@ -13,24 +17,88 @@
         position: relative;
         left: 5px;
     }
+    hr {
+        max-width: 50%;
+    }
+    #dutTabs {
+        padding-bottom:10px;
+    }
+    .outline {
+        border: 1px solid #e7e7e7;
+        border-radius: 4px;
+    }
+
+    .nav-pills > li > a {
+        color: #323232;
+    }
+
+    .nav-pills > li.active > a, .nav-pills > li.active > a:focus {
+        background-color: #7cb5ec;
+    }
+
+    .nav-pills > li.active > a:hover {
+        background-color: #7cb5ec;
+    }
+
 </style>
 
 <div class="col-sm-8 col-sm-offset-2" style="padding-top:10px">
     <!-- USER AND DUTS -->
     <div class="panel panel-default">
-      <!-- Default panel contents -->
+        <!-- Default panel contents -->
         <div class="panel-heading">
             <img width="55" height="40" src={{ url_for('static', filename="img/hcp-brain.png") }}>
             <h4>ConnectomeDB Users</h4>
         </div>
 
-        <table class="table">
-            {% for stat in cdb_stats %}
-            <tr>
-                <td>{{ stat[1] }}</td><td><b>{{ stat[3] }}</b></td>
-            </tr>
-            {% endfor %}
-        </table>
+{#        <div class="container">#}
+
+        <ul class="list-group">
+            <li class="list-group-item item-pad" style="padding-bottom: 0">
+                <p style="font-size:large;">
+                    <i class="fa fa-users"></i>
+                    <b>{{ cdb_stats['ConnectomeDB'][0]['users'] }}</b> User Accounts
+                </p>
+            </li>
+
+            <li class="list-group-item item-pad">
+                <h5><i class="fa fa-pencil-square-o"></i> Data Use Terms</h5>
+                <ul id="dutTabs" class="nav nav-pills" role="tablist">
+
+                    <li class="outline active"><a href="#all" data-toggle="pill">All</a></li>
+                    {% for proj in cdb_stats %}
+                        {% if proj != 'ConnectomeDB' %}
+                            <li class="outline"><a href="#{{ proj }}" data-toggle="pill">{{ proj }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                </ul>
+
+                <!-- Go through json twice to list for All and each separate Project -->
+                <div id="dut-tab-content" class="tab-content">
+                    <div class="tab-pane fade in active" id="all">
+                        {% for proj in cdb_stats %}
+                            {% if proj != 'ConnectomeDB' %}
+                                {% for dut in cdb_stats[proj] %}
+                                    <p>{{ proj }} {{ dut.keys()[0] }}: {{ dut.values()[0] }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% for proj in cdb_stats %}
+                        {% if proj != 'ConnectomeDB' %}
+                            <div class="tab-pane fade" id="{{ proj }}">
+                                {% for dut in cdb_stats[proj] %}
+                                    <p>{{ dut.keys()[0] }}: {{ dut.values()[0] }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </li>
+        </ul>
+{#        </div>#}
     </div>
 
     <!-- WORLD DISTRIBUTION -->
@@ -42,6 +110,8 @@
 
 {#        <img class="img-responsive" src={{ url_for('static', filename="img/worldmap-mockup.png") }}>#}
         <div id="data-dist" style="height: 500px; min-width: 310px; max-width: 900px; margin: 0 auto"></div>
+
+        <div class="panel-footer">Includes all ConnectomeDB downloads and HCP hard drive shipments.</div>
     </div>
 
     <!-- ASPERA DOWNLOADS -->
@@ -57,24 +127,60 @@
 {#            </span>#}
         </div>
 
-        <div>
-            <h5 class="text-center">To Date</h5>
-            <ul class="list-group">
-                <li class="list-group-item"><i class="fa fa-database"></i>
-                    <span class="item-info"><b>{{ aspera_stats['petabytes'] }}</b> Petabytes</span>
-                </li>
-                <li class="list-group-item"><i class="fa fa-file"></i>
-                    <span class="item-info"><b>{{ "{:,.0f}".format(aspera_stats['files']) }}</b> Files</span>
-                </li>
-                <li class="list-group-item"><i class="fa fa-users"></i>
-                    <span class="item-info"><b>{{ aspera_stats['users'] }}</b> Distinct Users</span>
-                </li>
-            </ul>
-        </div>
+        <ul class="list-group">
+            <li class="list-group-item item-pad">
+
+                <ul id="asperaTabs" class="nav nav-pills" role="tablist">
+                    {% for item in aspera_stats['results'] %}
+                        <li class="outline {% if loop.first %} active {% endif %}">
+                            <a class="aspera-button" id="{{ item['project'] }}"
+                               href="#{{ item['project'] }}-aspera" data-toggle="pill" onclick="updateAsperaChart(this.id)">
+                                {{ item['project'] }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+
+            <li class="list-group-item item-pad">
+                <div id="aspera-tab-content" class="tab-content">
+                    {% for i in aspera_stats['results'] %}
+                        <div class="tab-pane fade {% if loop.first %} in active {% endif %}" id="{{ i['project'] }}-aspera">
+                            <p>
+                                {% if i['total_bytes'] > 100000000000000 %}
+                                    <span style="font-size:large">
+                                        {{ "{:,.2f}".format(i['total_bytes']/(1024*1024*1024*1024*1024)) }}
+                                    </span>
+                                    <b>petabytes</b>
+                                {% else %}
+                                    <span style="font-size:large">
+                                        {{ "{:,.2f}".format(i['total_bytes']/(1024*1024*1024*1024)) }}
+                                    </span>
+                                    <b>terabytes</b>
+                                {% endif %}
+                            </p>
+                            <p>
+                                <span style="font-size:large">
+                                    {{ "{:,.0f}".format(i['total_files']) }}
+                                </span>
+                                <b>files</b>
+                            </p>
+                            <p>
+                                <span style="font-size:large">
+                                    {{ i['total_users'] }}
+                                </span>
+                                <b>distinct users</b>
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </li>
+        </ul>
 
 {#        <div id="aspera-gb-day" style="min-width: 310px; height: 400px; margin: 0 auto"></div>#}
+        <div id="aspera-month" style="min-width: 310px; min-height: 400px; margin: 0 auto"></div>
 
-        <div id="aspera-month" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+        <div class="panel-footer">Data last updated {{ aspera_stats['updated'] }}</div>
     </div>
 
     <!-- CINAB ORDERS -->
@@ -85,6 +191,7 @@
             <h4>Connectome-in-a-Box Orders</h4>
         </div>
 
+        <h5 style="padding-left: 15px;">HCP Data</h5>
         <div>
             <ul class="list-group">
                 <li class="list-group-item"><i class="fa fa-database"></i>
@@ -116,5 +223,4 @@
 </div>
 
 {% endblock %}
-
 
