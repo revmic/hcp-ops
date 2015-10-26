@@ -301,13 +301,13 @@ def get_country_iso(country_name):
 
 if __name__ == '__main__':
     # Update Connectome user and DUT counts
-    # collect_connectomedb_stats()
+    collect_connectomedb_stats()
 
     # Collect download history
     collect_aspera_stats()
 
     # Get Aspera downloads and CinaB orders by location
-    # collect_geolocation()
+    collect_geolocation()
 
     # Connectome-in-a-Box order history are direct queries to MediaTemple db
     # hosted for http://orders.humanconnectome.org
