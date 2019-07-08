@@ -1,0 +1,661 @@
+{% extends "layout-basic.html" %}
+
+{% block content %}
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@15/dist/react.js"></script>
+<script src="https://unpkg.com/react-dom@15/dist/react-dom.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0-alpha1/JSXTransformer.js"></script>
+<script src="https://npmcdn.com/react-bootstrap-table/dist/react-bootstrap-table.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reactable/0.14.1/reactable.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome-animation/0.0.10/font-awesome-animation.min.css">
+<link rel="stylesheet" href="/static/css/react-bootstrap-table.css">
+
+
+<script type="text/jsx">
+
+var nodeStyle = {
+  height: "180px",
+  width: "120px",
+  boxShadow: "0 0 0 1pt #DCDCDC",
+  borderRadius: "5px",
+  background: "#F8F8F8"
+}
+var nodeBtnStyle = {
+  width: "110px",
+  marginBottom: "1px"
+}
+
+function dateFormatter(cell, row) {
+  return new Date(cell);
+}
+
+function gigabyteFormatter(cell, row) {
+  // convert bytes to gigabytes
+  return String( (Number(cell)/(1024*1024*1024)).toFixed(4) ) + ' GB'
+}
+
+var NodeInfo = React.createClass({
+  getInitialState: function() {
+    return {
+      info: "loading ...",
+      sessions: [],
+      history: []
+    };
+  },
+
+  getNodeInfoFromServer: function(action) {
+    // console.log(this.props)
+    $.ajax({
+      url: this.props.url + action,
+      dataType: 'text',
+      cache: false,
+      success: function(d) {
+        this.setState({info: d});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url + action, status, err.toString());
+        this.setState({info: err.toString()})
+      }.bind(this)
+    });
+  },
+
+  getXnatInfo: function(resource) {
+    url = '/api/relay/hosts/' + this.props.host + '/' + resource + '/json'
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      cache: false,
+      success: function(d) {
+        // console.log(d.ResultSet.Result)
+        this.setState({
+          sessions: d.ResultSet.Result
+        });
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
+  getXsyncHistory: function() {
+    url = '/api/relay/hosts/' + this.props.host + '/xsync-history/json'
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      cache: false,
+      success: function(d) {
+        data = []
+        for (var i = 0, len = d.length; i < len; i++) {
+          if (d[i].totalDataSynced > 0) {
+            data.push(d[i])
+          }
+        }
+        this.setState({
+          history: data
+        });
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
+  render: function() {
+    var textStyle = {
+      fontFamily: "monospace",
+      textAlign: "left",
+      marginLeft: "10px"
+    }
+    var modalStyle = {
+      whiteSpace: "pre",
+      maxWidth: "100%",
+      minWidth: "80%",
+      width: "auto !important",
+      display: "inline-block"
+    }
+    var historyTableOtions = {
+      defaultSortName: "Date",
+      defaultSortOrder: "desc"
+    };
+
+
+    var dicomButtons = null;
+    if (this.props.hasDicom) {
+      dicomButtons =
+        <div>
+          <button type="button" className="btn btn-sm btn-info" style={nodeBtnStyle} data-toggle="modal"
+                  data-target={"#" + this.props.host + this.props.label + "archive"}
+                  onClick={this.getXnatInfo.bind(this, 'sessions')}>
+            DICOM Archive
+          </button>
+          <button type="button" className="btn btn-sm btn-info" style={nodeBtnStyle} data-toggle="modal"
+                  data-target={"#" + this.props.host + this.props.label + "prearchive"}
+                  onClick={this.getXnatInfo.bind(this, 'prearchive')}>
+            DICOM Pre-arc
+          </button>
+          <button type="button" className="btn btn-sm btn-info" style={nodeBtnStyle} data-toggle="modal"
+                  data-target={"#" + this.props.host + this.props.label + "xsync-history"}
+                  onClick={this.getXsyncHistory.bind(this, 'xsync-history')}>
+            Xsync History
+          </button>
+        </div>
+    }
+
+    return (
+      <div>
+
+        <form>
+          <div className="form-group form-group-sm" style={nodeStyle}>
+            <label className="control-label" htmlFor="marsNode">{this.props.label}</label>
+            <button type="button" className="btn btn-sm btn-default" style={nodeBtnStyle} data-toggle="modal"
+                    data-target={"#" + this.props.host + this.props.label + "Info"}
+                    onClick={this.getNodeInfoFromServer.bind(this, 'ls')}>
+              Raw Files
+            </button>
+            <button type="button" className="btn btn-sm btn-default" style={nodeBtnStyle} data-toggle="modal"
+                    data-target={"#" + this.props.host + this.props.label + "Info"}
+                    onClick={this.getNodeInfoFromServer.bind(this, 'du')}>
+              Disk Usage
+            </button>
+
+            {dicomButtons}
+          </div>
+        </form>
+
+        <div className="modal fade" role="dialog" id={this.props.host + this.props.label + "Info"} tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">{this.props.label + " on " + this.props.host}</h4>
+              </div>
+
+              <div className="modal-body" style={textStyle}>
+                <p style={textStyle}>{this.state.info}</p>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal fade" role="dialog" id={this.props.host + this.props.label + "archive"} tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">{this.props.label + " on " + this.props.host}</h4>
+              </div>
+
+              <div>
+                <BootstrapTable data={this.state.sessions} striped={true}>
+                  <TableHeaderColumn dataField="project" dataSort={true}>Project</TableHeaderColumn>
+                  <TableHeaderColumn dataField="label" dataSort={true}>Session</TableHeaderColumn>
+                  <TableHeaderColumn dataField="date" dataSort={true}>Acq. Date</TableHeaderColumn>
+                  <TableHeaderColumn dataField="insert_date" dataSort={true}>Upload Date</TableHeaderColumn>
+                  <TableHeaderColumn dataField="ID" dataSort={true} isKey={true}>ID</TableHeaderColumn>
+                </BootstrapTable>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal fade" role="dialog" id={this.props.host + this.props.label + "prearchive"} tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">{this.props.label + " on " + this.props.host}</h4>
+              </div>
+
+              <div>
+                <BootstrapTable data={this.state.sessions} striped={true}>
+                  <TableHeaderColumn dataField="project" dataSort={true}>Project</TableHeaderColumn>
+                  <TableHeaderColumn dataField="name" dataSort={true}>Session</TableHeaderColumn>
+                  <TableHeaderColumn dataField="scan_date" dataSort={true}>Acq. Date</TableHeaderColumn>
+                  <TableHeaderColumn dataField="uploaded" dataSort={true}>Upload Date</TableHeaderColumn>
+                  <TableHeaderColumn dataField="status" dataSort={true} isKey={true}>Status</TableHeaderColumn>
+                </BootstrapTable>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal fade" role="dialog" id={this.props.host + this.props.label + "xsync-history"} tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">{this.props.label + " on " + this.props.host}</h4>
+              </div>
+
+              <div>
+                <BootstrapTable data={this.state.history} striped={true} options={this.historyTableOptions}>
+                  <TableHeaderColumn dataField="completeDate" dataFormat={dateFormatter} dataSort={true} isKey={true}>Date</TableHeaderColumn>
+                  <TableHeaderColumn dataField="syncStatus" dataSort={true}>Status</TableHeaderColumn>
+                  <TableHeaderColumn dataField="totalSubjects" dataSort={true}>Subjects</TableHeaderColumn>
+                  <TableHeaderColumn dataField="totalExperiments">Subject Assessments</TableHeaderColumn>
+                  <TableHeaderColumn dataField="totalAssessors">Derived Assessments</TableHeaderColumn>
+                  <TableHeaderColumn dataField="totalResources">Project Resources</TableHeaderColumn>
+                  <TableHeaderColumn dataField="totalDataSynced" dataFormat={gigabyteFormatter} dataSort={true}>Total Data</TableHeaderColumn>
+                </BootstrapTable>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+});
+
+var TransferInfo = React.createClass({
+
+  transferAnimation: function(sync) {
+    if (sync.status.indexOf("in progress") !== -1) {
+      return "faa-passing animated"
+    } else if (sync.status.indexOf("fail") !== -1) {
+      return "faa-ring animated"
+    }
+    return ""
+  },
+
+  render: function() {
+    var transferStyle = {
+      height: "80px",
+      width: "100px",
+      marginTop: "10px",
+      border: 'none',
+      backgroundColor: 'white',
+      outline: 0
+    }
+    var textStyle = {
+      align: "left"
+    }
+    var modalStyle = {
+      // width: "80%"
+    }
+
+    return (
+      <div>
+        <button type="button"
+                style={transferStyle}
+                className={this.transferAnimation(this.props.sync)}
+                data-toggle="modal"
+                data-target={"#" + this.props.host + this.props.label + "Transfer"}>
+          <i className="fa fa-5x fa-long-arrow-right"></i>
+        </button>
+
+        <div className="modal fade" role="dialog"
+               id={this.props.host + this.props.label + "Transfer"} tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">{this.props.label + " transfer on " + this.props.host}</h4>
+              </div>
+              <div className="modal-body" style={textStyle}>
+                <p><b>{this.props.sync.status.toUpperCase()}</b></p>
+                <p>{this.props.sync.message}</p>
+                <p>Duration: {this.props.sync.elapsed}</p>
+                <p>Updated: {this.props.sync.lastUpdated}</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+});
+
+// var OverallInfo = React.createClass({
+// })
+
+var OverallStatusPanel = React.createClass({
+  getInitialState: function() {
+    return {
+      data: [],
+      items: 20
+    };
+  },
+
+  getMissingRawJson: function() {
+    // console.log(this.props)
+    clearInterval(this.props.pollId)
+
+    $.ajax({
+      url: "/api/relay/missing-raw",
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
+  componentDidMount: function() {
+    // $('tbody.reactable-pagination tr td').addClass('custom-pagination');
+    // this.itemsPerPage = 20
+  },
+
+  componentWillUnmount: function() {
+    // Restart transfer status polling
+    setInterval(this.props.loadStatusesFromServer, this.props.pollInterval)
+  },
+
+  handleChange: function() {
+    this.setState({items: event.target.value})
+  },
+
+
+  render: function() {
+    var modalStyle = {
+      minWidth: "90%",
+    }
+    var inputStyle = {
+      width: "120px"
+    }
+
+    var Table = Reactable.Table
+    var Tr = Reactable.Tr
+    var Td = Reactable.Td
+
+    return (
+      <div>
+        <div className="panel panel-default">
+          <div className="panel-heading">
+            <h3 className="panel-title">Overall Status</h3>
+          </div>
+
+          <div className="panel-body">
+            <div className="row">
+              <div className="col-sm-2 text-center">
+
+                <form>
+                  <div className="form-group form-group-sm" style={nodeStyle}>
+                    <label className="control-label" htmlFor="missingRaw">
+                      <i className="fa fa-minus-square"></i> Missing Raw
+                      </label>
+                    <button type="button" className="btn btn-sm btn-primary" style={nodeBtnStyle}
+                            data-toggle="modal" data-target={"#MissingRaw"}
+                            onClick={this.getMissingRawJson}>
+                      View Table
+                    </button>
+                    <a className="btn btn-sm btn-primary" style={nodeBtnStyle}
+                       href="/static/download/intradb-backup-uuids.csv">
+                      Download CSV
+                    </a>
+                  </div>
+                </form>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal fade" role="dialog" id="MissingRaw" tabIndex='-1'>
+          <div className="modal-dialog" style={modalStyle}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <button type="button" className="close" data-dismiss="modal">&times;</button>
+                <h4 className="modal-title">Missing Raw Files</h4>
+              </div>
+
+              <div className="modal-body">
+                <Table className="table striped"
+                  itemsPerPage={this.state.items} pageButtonLimit={5}
+                  sortable={[
+                      'Status',
+                      'Session',
+                      'Scan ID',
+                      'Acq. Site',
+                      'Acq. Date',
+                      'Insert Date',
+                  ]}
+                  filterable={[
+                      'Status',
+                      'Session',
+                      'Scan ID',
+                      'Acq. Site',
+                      'Acq. Date',
+                      'Insert Date',
+                  ]}>
+
+                  {this.state.data.map(function(row) {
+                    return (
+                      <Tr>
+                        <Td column="Status">{row.message}</Td>
+                        <Td column="Acq. Site">{row.acquisition_site}</Td>
+                        <Td column="Project">{row.project}</Td>
+                        <Td column="Session">{row.session}</Td>
+                        <Td column="Scan ID">{row.scan_id}</Td>
+                        <Td column="Acq. Date">{row.scan_date}</Td>
+                        <Td column="Insert Date">{row.insert_date}</Td>
+                        <Td column="UUID">{row.uuid}</Td>
+                      </Tr>
+                    )
+                  })}
+                </Table>
+
+                <div className="input-group">
+                  <span className="input-group-addon">items/pg.</span>
+                  <input type="text" className="form-control" style={inputStyle}
+                    aria-label="Items per page" value={this.state.items}
+                    onChange={this.handleChange} disabled
+                  />
+                </div>
+
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    )
+  }
+})
+
+var HostStatusPanel = React.createClass({
+  getOverallHostStatus: function() {
+    var status = "warn";
+    var mars_time_diff = Date.now() - Date.parse(this.props.mars_sync.lastUpdated)
+    var relay_time_diff = Date.now() - Date.parse(this.props.relay_sync.lastUpdated)
+    const threshold = 86400000 * 2 // 2 day
+
+    // Check each image type that was synced for errors
+    if (this.props.mars_sync.status == "failed" ||
+        this.props.relay_sync.status == "failed") {
+      return "error"
+    } else if (this.props.mars_sync.status == "unknown" ||
+               this.props.relay_sync.status == "unknown") {
+      return "unknown"
+    } else if (mars_time_diff > threshold && relay_time_diff > threshold/2) {
+      return "warn"
+    } else if (this.props.mars_sync.status == "success" &&
+               this.props.relay_sync.status == "success") {
+      return "success"
+    } else {
+      return "unknown"
+    }
+  },
+
+  headerColor: function() {
+    var status = this.getOverallHostStatus()
+    if (status == "success")
+      return "panel panel-success"
+    if (status == "warn")
+      return "panel panel-warning"
+    if (status == "error")
+      return "panel panel-danger"
+    if (status == "unknown")
+      return "panel panel-default"
+  },
+
+  statusBadge: function() {
+    var status = this.getOverallHostStatus()
+    if (status == "success")
+      return "Success"
+    if (status == "warn")
+      return "No recent activity"
+    if (status == "error")
+      return "Error"
+    if (status == "unknown")
+      return "--"
+  },
+
+  render: function() {
+    // console.log(this.props)
+
+    var badgeStyle = {
+      marginTop: "-15px"
+    }
+    var shrinkMargins = {
+      marginTop: "-5px",
+      marginBottom: "-20px"
+    }
+
+    return (
+      <div className={this.headerColor()}>
+        <div className="panel-heading">
+          <h3 className="panel-title">{this.props.data.host}</h3>
+
+{/*
+ <!-- added by Ehsan for disk status  -->
+	<p> disk status: </p>        
+*/}
+
+          <span className="badge pull-right" style={badgeStyle}>
+            {this.statusBadge()}
+          </span>
+        </div>
+
+        <div className="panel-body" style={shrinkMargins}>
+          <div className="row">
+            <div className="col-sm-2 text-center ">
+              <NodeInfo url={"/api/relay/hosts/" + this.props.host + "/nodes/mars/"}
+                        label={"MARS"} host={this.props.host} />
+            </div>
+            <div className="col-sm-3 text-center">
+              <TransferInfo sync={this.props.mars_sync} label={"mars-relay"} host={this.props.host} />
+            </div>
+            <div className="col-sm-2 text-center">
+              <NodeInfo url={"/api/relay/hosts/" + this.props.host + "/nodes/relay/"}
+                        label={"Relay"} host={this.props.host} hasDicom={true} />
+            </div>
+            <div className="col-sm-3 text-center">
+               <TransferInfo sync={this.props.relay_sync} label={"relay-backup"} host={this.props.host} />
+            </div>
+            <div className="col-sm-2 text-center">
+              <NodeInfo url={"/api/relay/hosts/" + this.props.host + "/nodes/backup/"}
+                        label={"Backup"} host={this.props.host} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+});
+
+var SyncMonitor = React.createClass({
+  getInitialState: function() {
+    return {
+      data: [{
+        "host": "Loading transfer info ...",
+        "mars-sync": {
+          "last-updated": "--",
+          "status": "--",
+          "message": "--"
+        },
+        "relay-sync": {
+          "last-updated": "--",
+          "status": "--",
+          "message": "--"
+        }
+      }]
+    };
+  },
+
+  loadStatusesFromServer: function() {
+    // console.log("loadstatus() called")
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({data: data.results});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
+  componentDidMount: function() {
+    this.loadStatusesFromServer();
+    this.xferPoll = setInterval(this.loadStatusesFromServer, this.props.pollInterval)
+  },
+
+  render: function() {
+    var hosts = this.state.data.map(function(data) {
+      // TODO shouldn't need to pass data.syncs and data
+      return (
+          <div>
+            <HostStatusPanel
+              host={data.host}
+              mars_sync={data['mars-sync']}
+              relay_sync={data['relay-sync']}
+              data={data}
+            />
+          </div>
+        );
+    });
+
+    return (
+      <div>
+        {hosts}
+        {/* We unfortunately have to stop the status polling since it messes with table filters */}
+        <OverallStatusPanel pollId={this.xferPoll} pollInterval={this.props.pollInterval}
+          loadStatusesFromServer={this.loadStatusesFromServer}
+        />
+      </div>
+    )
+  }
+});
+
+ReactDOM.render(
+  <SyncMonitor url="/api/relay/transfers" pollInterval={5000} />,
+  document.getElementById('root')
+);
+
+</script>
+
+{% endblock %}

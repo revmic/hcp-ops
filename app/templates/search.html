@@ -10,7 +10,9 @@
             <span class="glyphicon glyphicon-search"></span> Search Connectome
           </button>
           {{ form.firstname(placeholder='First name', size=24) }}
-          {{ form.lastname(placeholder='Last name', size=24) }}
+          {{ form.lastname(placeholder='Last name', size=24) }} OR
+          {{ form.username(placeholder='Username', size=24) }} OR
+          {{ form.email(placeholder='Email', size=24) }}
       </div>
     </div>
     <hr>
@@ -41,9 +43,10 @@
             </tbody>
         </table>
     </div>
-    {% elif (form.firstname.data or form.lastname.data) and not results %}
+    {% elif (form.firstname.data or form.lastname.data or form.username.data or form.email.data) and not results %}
     <div class="alert alert-warning"><span class="glyphicon glyphicon-warning-sign"></span>
-        No matching users found on ConnectomeDB for <b>{{ form.firstname.data }} {{ form.lastname.data}}</b>
+        No matching users found on ConnectomeDB for 
+        <b>{{ form.firstname.data }} {{ form.lastname.data}} {{ form.username.data }} {{ form.email.data }}</b>
     </div>
     {% endif %}
 
@@ -69,11 +72,11 @@
     {% endif %}
 
     {% if gen_email %}
-    <div class="control-group" style="padding-bottom: 50px">
-      <div class="controls">
+    <div class="input-group" style="padding-bottom: 50px">
+      <span class="input-group-btn">
           <button name="gen_email" value="gen" class="btn btn-primary"><span class="glyphicon glyphicon-envelope"></span> Generate Email As</button>
-          {{ form.generate_email_as }}
-      </div>
+      </span>
+          {{ form.generate_email_as(class_="form-control", style="width: 200px; margin-left: 10px;") }}
     </div>
     {% endif %}
     <div id='flash'>

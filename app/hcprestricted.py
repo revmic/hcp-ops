@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 from datetime import date
 from model import get_db
 from sqlite3 import OperationalError
+from fuzzywuzzy import fuzz
 from config import CC_LIST, ENV, config  # Move to config file
 from app.views import g
 import ConfigParser
@@ -18,10 +19,16 @@ cdb = HcpInterface(url=config.get('hcpxnat', 'site'),
                    password=config.get('hcpxnat', 'password'))
 
 
-def search_cdb(firstname=None, lastname=None):
+
+def search_cdb(form):
     """ Check for firstname/lastname match on ConnectomeDB
     Takes multiple matches and possible matches into account
     """
+    firstname = form.firstname.data
+    lastname = form.lastname.data
+    username = form.username.data
+    email = form.email.data
+
     users = cdb.getUsers()
     matches = []
     possible_matches = []
@@ -29,6 +36,12 @@ def search_cdb(firstname=None, lastname=None):
     for user in users:
         if lastname.lower() == user.get('lastname').lower() and \
            firstname.lower() == user.get('firstname').lower():
+            matches.append(user)
+
+        elif username.lower() == user.get('login').lower():
+            matches.append(user)
+
+        elif email.lower() == user.get('email').lower():
             matches.append(user)
 
     if not matches:  # No exact matches found, look for partial
@@ -45,9 +58,14 @@ def search_cdb(firstname=None, lastname=None):
             elif lastname.lower() == user.get('lastname').lower() and \
                firstname.lower()[0] == user.get('firstname').lower()[0]:
                 possible_matches.append(user)
-            # Look for substring of first and last names
-            #elif lastname.lower() in user.get('lastname').lower():# and \
-            #    possible_matches.append(user)
+            # Look for email username without domain
+            elif email.split('@')[0].lower() == user.get('email').split('@')[0].lower():
+                possible_matches.append(user)
+            # Look for fuzzy match of first and last names above 80
+            elif fuzz.ratio(lastname.lower(), user.get('lastname').lower()) > 75 and \
+               fuzz.ratio(firstname.lower(), user.get('firstname').lower()) > 75:
+                possible_matches.append(user)
+
     return matches, possible_matches
 
 
@@ -146,7 +164,7 @@ def send_email(subject, recipients, sender, message):
     msg['To'] = ', '.join(recipients)
     msg['CC'] = ', '.join(CC_LIST)
 
-    session = smtplib.SMTP('mail.nrg.wustl.edu')
+    session = smtplib.SMTP('localhost')
     try:
         session.sendmail(sender, recipients+CC_LIST, msg.as_string())
     except smtplib.SMTPException, e:

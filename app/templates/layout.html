@@ -8,9 +8,10 @@
 
     <title>HCP Restricted Access</title>
 
-    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css") }}>
+    <!--<link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css") }}>-->
     <link rel="stylesheet" href={{ url_for('static', filename="css/sticky-footer-navbar.css") }}>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+    <!--<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">-->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
   </head>
 
@@ -34,13 +35,17 @@
             <li {% if request.path == "/restricted/report" %}class="active"{% endif %}><a href="{{ url_for('report') }}">Access Report</a></li>
 {#            <li {% if request.path == "/config" %}class="active"{% endif %}><a href="{{ url_for('config') }}">Configuration</a></li>#}
             <li><a href="https://db.humanconnectome.org/app/template/XDATScreen_admin.vm" target="_blank">Connectome User Page</a></li>
+          {% if g.user.is_authenticated %}
+            <li><a href="{{ url_for('logout') }}" style="color:red">Logout</a></li>
+          {% endif %}
           </ul>
         </div><!--/.nav-collapse -->
       </div>
     </div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src={{ url_for('static', filename="js/bootstrap.min.js") }}></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <!--<script src={{ url_for('static', filename="js/bootstrap.min.js") }}></script>-->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
     <!-- Begin page content -->
     <div class="container" style="padding-bottom:6%;padding-bottom:2%;">

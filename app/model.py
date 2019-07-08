@@ -3,15 +3,60 @@ import sqlite3
 import pymysql
 import ConfigParser
 
-from app import app
+from flask.ext.login import UserMixin
+
+from app import app, login_manager
 from app.views import g
 
 config = ConfigParser.ConfigParser()
 config_path = os.path.join(os.path.expanduser("~"), '.hcprestricted')
+#config_path = os.path.join(os.sep, 'var', 'www', '.hcprestricted')
 config.read(config_path)
 
 
-''' MODEL Methods '''
+class User(UserMixin):
+    id = config.get('site', 'username')
+    password = config.get('site', 'password')
+
+    database = (
+        {'hcp': (config.get('site', 'username'), 
+                 config.get('site', 'password'))})
+
+    #db = [{'username': config.get('site', 'username'), 
+    #      'password': config.get('site', 'password')}]
+
+    def __init__(self, username, password):
+        self.id = username
+        self.password = password
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        #print "inside User.get_id()"
+        try:
+            return unicode(self.id)  # python 2
+        except NameError:
+            return str(self.id)  # python 3
+
+    @classmethod
+    def get(cls, id):
+        #print "inside User.get()"
+        return cls(config.get('site', 'username'), config.get('site', 'password'))
+
+    def __repr__(self):
+        return '<User username: %s, password: %s>' % (self.id, self.password)
+
+''' DB Connection Methods '''
 
 
 def connect_db():
@@ -34,6 +79,7 @@ def connect_aspera_geo():
                           user=config.get('aspera', 'user'),
                           passwd=config.get('aspera', 'passwd'),
                           db=config.get('aspera', 'geodb'),
+                          port=int(config.get('aspera', 'port')),
                           charset="utf8")
     return cnx.cursor()
 
@@ -43,6 +89,7 @@ def connect_aspera_stats():
                           user=config.get('aspera', 'user'),
                           passwd=config.get('aspera', 'passwd'),
                           db=config.get('aspera', 'statsdb'),
+                          port=int(config.get('aspera', 'port')),
                           charset="utf8")
     return cnx.cursor()
 

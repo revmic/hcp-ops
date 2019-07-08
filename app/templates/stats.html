@@ -149,19 +149,19 @@
                             <p>
                                 {% if i['total_bytes'] > 100000000000000 %}
                                     <span style="font-size:large">
-                                        {{ "{:,.2f}".format(i['total_bytes']/(1024*1024*1024*1024*1024)) }}
+                                        {{ '%0.2f'| format(i['total_bytes']/(1024*1024*1024*1024*1024)) }}
                                     </span>
                                     <b>petabytes</b>
                                 {% else %}
                                     <span style="font-size:large">
-                                        {{ "{:,.2f}".format(i['total_bytes']/(1024*1024*1024*1024)) }}
+                                        {{ '%0.2f'| format(i['total_bytes']/(1024*1024*1024*1024)) }}
                                     </span>
                                     <b>terabytes</b>
                                 {% endif %}
                             </p>
                             <p>
                                 <span style="font-size:large">
-                                    {{ "{:,.0f}".format(i['total_files']) }}
+                                    {{ '%0.0f'| format(i['total_files']) }}
                                 </span>
                                 <b>files</b>
                             </p>
@@ -217,10 +217,47 @@
                 </li>
             </ul>
         </div>
+    </div>
 
+    <!-- CCF REPORT -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <i class="fa fa-3x pull-left fa-file-text" aria-hidden="true"></i>
+            <h4>CCF Subject & Session Report</h4>
+        </div>
+        <button id="ccf-report-btn" class="btn btn-primary" style="margin: 20px" onclick="generateCcfReport()">Generate & Download <i id='fa-cog' class="fa fa-cog fa-spin hidden"></i></button>
     </div>
 
 </div>
+
+<script>
+function generateCcfReport() {
+    console.log("generating ccf report...")
+
+    var $btn = $('#ccf-report-btn')
+    var $icn = $('#fa-cog')
+    $btn.prop('disabled', true)
+    $icn.removeClass('hidden')
+
+    $.ajax({
+        url: 'https://hcp-ops.humanconnectome.org/stats/ccf/generate',
+        type: 'POST',
+        async: true,
+        cache: false,
+        success: function() {
+            console.log('ccf report downloaded')
+            window.location = "https://hcp-ops.humanconnectome.org/static/download/ccf-report.csv"
+         },
+        error: function() {
+             alert("Error generating CCF report")
+        },
+        complete: function() {
+            $btn.prop('disabled', false)
+            $icn.addClass('hidden')
+        }
+    })
+}
+</script>
 
 {% endblock %}
 

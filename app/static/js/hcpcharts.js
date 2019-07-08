@@ -1,5 +1,5 @@
 $(function () {
-    $.getJSON('http://hcp-ops.nrg.mir/stats/geolocation', function (data) {
+    $.getJSON('https://hcp-ops.humanconnectome.org/stats/geolocation', function (data) {
 
         var countryData = data["results"];
         var mapData = Highcharts.geojson(Highcharts.maps['custom/world']);
@@ -56,7 +56,7 @@ $(function () {
 //var aspera_chart;
 
 $(function () {
-    $.getJSON('http://hcp-ops.nrg.mir/stats/downloads', function (data) {
+    $.getJSON('https://hcp-ops.humanconnectome.org/stats/downloads', function (data) {
 
         // Initially load for 'All' projects
         for (var i in data["results"]) {
@@ -85,6 +85,7 @@ $(function () {
                 categories: months
             },
             yAxis: {
+                ceiling: 1500,
                 title: {
                     text: ''
                 },
@@ -132,7 +133,7 @@ function updateAsperaChart(project) {
     //alert($('.nav-pills .active').text());
     var chart = $('#aspera-month').highcharts();
 
-    $.getJSON('http://hcp-ops.nrg.mir/stats/downloads', function (data) {
+    $.getJSON('https://hcp-ops.humanconnectome.org/stats/downloads', function (data) {
 
         for (var i in data["results"]) {
             if (data["results"][i]["project"] == project) {

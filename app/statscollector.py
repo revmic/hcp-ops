@@ -67,9 +67,9 @@ def collect_aspera_stats():
 
         # Downloads to date - Month, Year, Size, Files, Users
         queries = [
-            ("All", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)"),
+            ("All", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND s.operation='Download' AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)"),
             ("HCP", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND (f.file_fullpath LIKE '%HCP\_%' OR f.file_fullpath LIKE '%LS\_%' OR f.file_fullpath REGEXP 'live/[0-9][0-9][0-9][0-9][0-9][0-9]') AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)"),
-            ("MGH", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND (f.file_fullpath LIKE '%MGH\_%') AND f.file_basename NOT LIKE '%.md5'")
+            ("MGH", "SELECT YEAR(s.started_at) AS Year, MONTH(s.started_at) AS Month, SUM(f.bytes_written) AS Bytes, COUNT(DISTINCT(s.cookie)) AS Users, COUNT(f.status) AS Files FROM fasp_sessions AS s INNER JOIN fasp_files AS f ON s.session_id=f.session_id WHERE f.status='completed' AND (f.file_fullpath LIKE '%MGH\_%') AND f.file_basename NOT LIKE '%.md5' GROUP BY YEAR(s.started_at), MONTH(s.started_at)")
         ]
 
         results = []
@@ -144,10 +144,8 @@ def collect_geolocation():
     print "\n", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), \
         "-- Updating Geolocation Data"
 
-    # aspera_downloads = {'United States': 3, 'Canada': 1}
     aspera_downloads = get_aspera_geo()
 
-    # cinab_orders = {'Australia': 1, 'Canada': 2}
     cinab_orders = get_cinab_geo()
 
     combine_geolocation(cinab_orders, aspera_downloads)
@@ -208,14 +206,16 @@ def get_cinab_geo():
         'HCP-UR80': 3200,
         'HCP-UR100': 4000,
         'HCP-500S': 17000,
-        'HCP-900S': 38000
+        'HCP-S900': 56000,
+        'HCP-S1200': 90000,
+        'HCP-MEG': 4000
     }
 
     # SELECT shipping_country,drives_ordered,status FROM orders where (status='shipped') ORDER BY shipping_country;
     # SELECT shipping_country,data_ordered FROM orders where status='shipped' or status LIKE '%deliver%';
 
     q = ("SELECT shipping_country,data_ordered FROM orders "
-         "WHERE status='shipped' OR status LIKE '%deliver%'")
+         "WHERE status LIKE '%shipped%' OR status LIKE '%deliver%'")
     print q
 
     with app.app_context():
@@ -231,10 +231,14 @@ def get_cinab_geo():
         if country is u'' or release is u'':
             continue
 
-        if country not in geo:
-            geo[country] = size[release]
-        else:
-            geo[country] += size[release]
+        try:
+            if country not in geo:
+                geo[country] = size[release]
+            else:
+                geo[country] += size[release]
+        except KeyError as e:
+            print e.message
+            print "++ Error: Release", release, "not found in size map"
 
     return geo
 
@@ -245,6 +249,8 @@ def combine_geolocation(cinab_orders, aspera_downloads):
     which can be accessed via REST API.
     JSON file contains {'Country1': int, 'Country2': int ...}
     """
+    print aspera_downloads
+
     output = dict((k, [cinab_orders[k], aspera_downloads.get(k)])
                   for k in cinab_orders)
     output.update((k, [None, aspera_downloads[k]])
@@ -260,8 +266,8 @@ def combine_geolocation(cinab_orders, aspera_downloads):
         elif not output[country][0]:
             combined[country] = output[country][1]
 
+    print "COMBINED"
     print combined
-    # {'Canada': 3, 'United States': 3, 'Australia': 1}
 
     json_data = []
 
@@ -301,7 +307,7 @@ def get_country_iso(country_name):
 
 if __name__ == '__main__':
     # Update Connectome user and DUT counts
-    collect_connectomedb_stats()
+    #collect_connectomedb_stats()
 
     # Collect download history
     collect_aspera_stats()

@@ -1,45 +1,67 @@
 from functools import wraps
+from datetime import datetime
+import re
 
 from flask import (render_template, request, Response, g, session, redirect,
-                   url_for, flash, jsonify, json, )
+                   url_for, flash, jsonify, json, send_from_directory, )
+#from flask.ext.basicauth import BasicAuth
+from flask.ext.login import login_required, login_user, logout_user, current_user
 
-from forms import RestrictedAccessForm, EmailForm
+from forms import RestrictedAccessForm, EmailForm, LoginForm
+from config import CC_LIST, RELAY_HOSTNAMES, basedir, config as cp
+from app import app, login_manager
+from model import User, get_db_cinab
 from hcprestricted import *
-from config import CC_LIST, basedir, config as cp
-from app import app
-from model import get_db_cinab
+from ccfreport import *
 
+#log = open('/tmp/debug-auth.log', 'a')
 
-def check_auth(username, password):
-    """This function is called to check if a username /
-    password combination is valid.
-    """
-    return username == cp.get('site', 'username') and \
-        password == cp.get('site', 'password')
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
 
+@app.before_request
+def before_request():
+    g.user = current_user
 
-def authenticate():
-    """Sends a 401 response that enables basic auth"""
-    return Response(
-        'Could not verify your access level for that URL.\n'
-        'You have to login with proper credentials', 401,
-        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+@login_manager.unauthorized_handler
+def unauthorized():
+    form = LoginForm()
+    flash('You must login to access this page.', 'warning')
+    return redirect(url_for('login'))
+    #return render_template('login.html', form=form)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if g.user is not None and g.user.is_authenticated:
+        print g.user.id + " appears to already be logged in"
+        return redirect(url_for('search'))
+    
+    form = LoginForm()
 
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
+    #if form.validate_on_submit():
+    if request.method == 'POST':
+        user = User(form.username.data, form.password.data)
 
-    return decorated
+        if form.username.data == User.id and form.password.data == User.password:
+            login_user(user, remember=True)
+            return redirect(url_for('search'))
+        else:
+            flash('Login failed', 'warning')
+    return render_template('login.html', title='Sign In', form=form)
 
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
+@app.route('/relays', methods=['GET'])
+def relays():
+    return render_template('relays.html', title='Relay Monitor')
+    
 # @app.route('/', methods=['GET', 'POST'])
 @app.route('/restricted', methods=['GET', 'POST'])
-@requires_auth
+@login_required
 def search():
     form = RestrictedAccessForm()
     open_access = None
@@ -51,8 +73,8 @@ def search():
         session.clear()  # Clear out for multiple additions
     results = None
 
-    if form.firstname.data or form.lastname.data:
-        exact_matches, possible_matches = search_cdb(form.firstname.data, form.lastname.data)
+    if form.firstname.data or form.lastname.data or form.username.data or form.email.data:
+        exact_matches, possible_matches = search_cdb(form)
 
         if exact_matches:
             results = exact_matches
@@ -66,7 +88,7 @@ def search():
         # session variables get incorrectly set for other actions
         if request.form.get('search_cdb'):
             session['email_msg'] = \
-                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps and respond to this email when completed:\n\n" + \
+                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website, I was unable to locate a ConnectomeDB account under your name or evidence that you have already accepted the Open Access Data Use Terms.  To fulfill the conditions of this approval, please take the following steps and respond to this email when completed:\n\n" + \
                 "1) Register for a ConnectomeDB account at https://db.humanconnectome.org .\n" + \
                 "2) Log into your account and read and accept the Open Access Data Use Terms that you are directed to by the site.\n\n" + \
                 "If you already have an account and have accepted the Open Access Data Use Terms, please let me know the username and I will grant access to that account.\n\n" + \
@@ -77,8 +99,9 @@ def search():
             session['email'] = ''
             session['username'] = ''
 
-    elif not (form.firstname.data or form.lastname.data) and request.form.get('search_cdb'):
-        flash("You must enter at least a first or last name to search.", 'warning')
+    elif not (form.firstname.data or form.lastname.data or form.username.data or form.email.data) \
+        and request.form.get('search_cdb'):
+        flash("You must enter a name, username, or email to search.", 'warning')
 
     # Handle AD search button event #
     user_select_action = request.form.get('search_ad')
@@ -101,7 +124,7 @@ def search():
 
         if not open_access:
             session['email_msg'] = \
-                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website I found an account '" + \
+                "FYI, your request for access to restricted HCP data has been approved conditional on your additional acceptance of the HCP Open Access Data Use Terms.  On the ConnectomeDB website, I found an account '" + \
                 session[
                     'username'] + "' that appears to be yours, but the Open Access Data Use Terms had not been accepted.  To fulfill the conditions of this approval, please log into your account and read and accept the HCP Open Access Data Use Terms that you are directed to by the site.  If you are unable to access your account because the account hasn't been verified, please click the 'Resend email verification' link next to the 'Log In' button.  Please let me know when you have accepted the Open Access terms and I will grant access to the restricted data.\n\n" + \
                 "As a reminder, because of the sensitivity of Restricted Data, please do not forward it to others in your laboratory; when their Restricted Access application is submitted and approved, they will be able to access the data themselves.\n\nRegards,\n\n*FROM*"
@@ -151,7 +174,7 @@ def search():
 
 
 @app.route('/email', methods=['GET', 'POST'])
-@requires_auth
+@login_required
 def email():
     form = EmailForm()
     salutation = 'Dr. ' + session['lastname']
@@ -191,7 +214,7 @@ def email():
 
 
 @app.route('/restricted/report', methods=['GET', 'POST'])
-@requires_auth
+@login_required
 def report():
     form = RestrictedAccessForm()
     db = get_db()
@@ -206,7 +229,7 @@ def report():
 
 
 @app.route('/config', methods=['GET', 'POST'])
-@requires_auth
+@login_required
 def config():
     return render_template('config.html')
 
@@ -237,12 +260,18 @@ def statistics():
                            cdb_stats=cdb_stats, aspera_stats=aspera_stats)
 
 
+@app.route('/stats/ccf/generate', methods=['POST'])
+def download_ccf_report():
+    # The method and variables are declared in ccfreport.py
+    generate_ccf_report()
+    return "Your report is available here:\n" + \
+        "https://hcp-ops.humanconnectome.org/static/download/ccf-report.csv"
+
+
 def get_cinab_stats():
     """
     Builds a map of CinaB stats to pass to the view
     """
-    db = get_db_cinab()
-
     cinab_stats = {
         'customer_count': 0,
         'domestic_customer_count': 0,
@@ -253,6 +282,13 @@ def get_cinab_stats():
         'total_drives': 0,
     }
 
+    try:
+        db = get_db_cinab()
+    except Exception as e:
+        print e
+        print "Something went wrong connecting to CinaB Orders database"
+        return cinab_stats
+
     # Customer Count
     # SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status FROM orders where (status !='incomplete') and (status!='failed') and (status!='cancel') and (status!='refund') and order_type='data' GROUP BY customer_email ORDER BY customer_email
     q = ("SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status "
@@ -262,8 +298,8 @@ def get_cinab_stats():
     r = db.execute(q)
     cinab_stats['customer_count'] = r
     # cinab_stats['customer_count'] = len(r)
-    # for item in r:
-    #     print item
+    #for item in r:
+    #    print item
 
     # International Customers
     # SELECT COUNT(*) AS Rows, customer_email,customer_id,order_type,status FROM orders where (status !='incomplete') and (status!='failed') and (status!='refund') and (shipping_country!='United States') and order_type='data' GROUP BY customer_email ORDER BY customer_email;
@@ -302,3 +338,132 @@ def get_cinab_stats():
         cinab_stats['customer_count'] - cinab_stats['intl_customer_count']
 
     return cinab_stats
+
+
+@app.route('/api/relay/missing-raw')
+def relay_missing_raw():
+    stats_path = os.path.join(basedir, "db", "relays")
+    with open(os.path.join(stats_path, "intradb-backup-uuids.json")) as f:
+        resp = f.read()
+    return resp
+
+
+@app.route('/api/relay/hosts/<hostname>/<resource>/<response_format>')
+def relay_sessions(hostname, resource='sessions', response_format='json'):
+    stats_path = os.path.join(basedir, "db", "relays")
+
+    fname = "{0}-xnat-{1}.{2}".format(hostname, resource, response_format)
+    with open(os.path.join(stats_path, fname)) as f:
+        items = f.read()
+
+    #if resource == 'xsync-history':
+    #    items = filter_xsync_history(items)
+
+    return items
+
+
+def filter_xsync_history(history):
+    non_empty_transfers = []
+
+    for item in json.loads(history):
+        if int(item['totalDataSynced']) > 0:
+            non_empty_transfers.append(item.encode('utf-8'))
+
+    return non_empty_transfers
+
+
+@app.route('/api/relay/hosts/<hostname>/nodes/<nodename>/<action>')
+def relay_nodes(hostname, nodename, action):
+    stats_path = os.path.join(basedir, "db", "relays")
+    all_stats = []
+
+    fname = "{0}-{1}-{2}.txt".format(hostname, nodename, action)
+    with open(os.path.join(stats_path, fname)) as f:
+        mars_files = f.read()
+    return mars_files
+
+
+# API for image relay monitor
+@app.route('/api/relay/transfers', methods=['GET', 'POST'])
+def relay_transfers():
+    if request.method == 'POST':
+        try:
+            f = request.files['file']
+            f.save(request.args.get('filename'))
+        except Exception as e:
+            return "<h2>" + str(e) + "</h2>", 500
+        return "<h2>"+ "success" +"</h2>", 200
+
+    json_path = os.path.join(basedir, "db", "relays")
+    all_statuses = []
+
+    for hostname in natural_sort(RELAY_HOSTNAMES):
+        fname = "{0}-MARS-status.json".format(hostname)
+        with open(os.path.join(json_path, fname)) as f:
+            try:
+                mars_data = json.load(f)
+            except ValueError as e:
+                mars_data = {
+                    'status': 'Python ValueError.',
+                    'message': 'Corrupt MARS status file.',
+                    'last-updated': str(datetime.now()),
+                    'elapsed': '0'
+                }
+
+        fname = "{0}-RAW-status.json".format(hostname)
+        with open(os.path.join(json_path, fname)) as f:
+            try:
+                relay_data = json.load(f)
+            except ValueError as e:
+                relay_data = {
+                    'status': 'Python ValueError.', 
+                    'message': 'Corrupt RELAY status file.', 
+                    'last-updated': str(datetime.now()),
+                    'elapsed': '0'
+                }
+
+        mars_elapsed = getElapsedStr(mars_data)
+        relay_elapsed = getElapsedStr(relay_data)
+
+        mars_sync = {
+            'status': mars_data['status'],
+            'message': mars_data['message'],
+            'elapsed': mars_elapsed,
+            'lastUpdated': mars_data['last-updated']
+        }
+        relay_sync = {
+            'status': relay_data['status'],
+            'message': relay_data['message'],
+            'elapsed': relay_elapsed,
+            'lastUpdated': relay_data['last-updated']
+        }
+        host_status = {
+            'host': hostname, 
+            'mars-sync': mars_sync, 
+            'relay-sync': relay_sync
+        }
+        all_statuses.append(host_status)
+        
+    return jsonify(results=all_statuses)
+
+
+def getElapsedStr(data):
+    elapsed = ""
+    try:
+        seconds = int(data['elapsed'])
+        if seconds < 60:
+            elapsed = str(seconds) + " seconds"
+        elif seconds < 3600:
+            elapsed = str(seconds/60) + " minutes"
+        else:
+            elapsed = str(seconds/60/60) + " hours"
+    except Exception as e:
+        print e.message
+
+    return elapsed
+
+
+def natural_sort(l):
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)

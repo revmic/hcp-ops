@@ -1,0 +1,38 @@
+Project ID,Project Name,PI,Subjects,Sessions
+CCF_DAD_ITK,CCF Dysexecutive AD Study, ,0,0
+CCF_BANDA_ITK,CCF MIT BANDA Intake,Susan Whitfield-Gabrieli,74,75
+CCF_FTD_ITK,CCF_FTD_ITK,Murray Grossman,0,0
+CCF_DMCC_STG,CCF Dual Mechanisms of Cognitive Control Staging Project,Todd Braver,2,2
+CCF_PCMP_ITK,CCF Protocol Comparison (PCMP) Intake,Deanna Barch,43,105
+CCF_HCPD_PLT,CCF HCP-Development (HCPD) Pilot Project,Deanna Barch,16,31
+CCF_HCPA_PLT,CCF HCP-Aging (HCPA) Pilot Project,Deanna Barch,54,92
+CCF_ECP_ITK,CCF Epilepsy Connectome Project Intake,Jeffrey Binder,121,242
+CCF_BWH_EP_ITK,Human Connectome Project for Early Psychosis Indiana University and BWH Site,Martha Shenton,117,114
+CCF_ACP_ITK,CCF Maryland Amish Connectome Mental Illness Intake Project,Elliot Hong,409,367
+CCF_EEAJ_ITK,CCF Estudio de la enfermedad de Alzheimer en Jalisciences Intake,John Ringman,46,53
+CCF_MDD_ITK,CCF Major Depressive Disorder Intake Project,Katherine Narr,338,337
+CCF_PHCP_ITK,CCF Psychosis Human Connectome Intake Project,Scott Sponheim,152,487
+CCF_BCP_ITK,LifeSpan Babies Connectome Project,Weili Lin,572,724
+CCF_HCD_ITK,CCF HCP-Development (HCD) Intake Project,Deanna Barch,949,2047
+CCF_MDP_ITK,CCF Macular Degeneration and Plasticity Intake Project,Kristina Visscher,20,81
+CCF_CBA_ITK,CCF_CBA_ITK,James Becker,171,318
+CCF_ADCPWI_ITK,CCF_ADCPWI_ITK,Shi-Jiang Li,148,278
+CCF_MDP_PRC,CCF_MDP_PRC,Kristina Visscher,0,0
+CCF_FTD_PRC,CCF_FTD_PRC,Murray Grossman,0,0
+CCF_ACP_PRC,CCF_ACP_PRC,Elliot Hong,208,224
+CCF_MDD_PRC,CCF_MDD_PRC,Katherine Narr,330,329
+CCF_BANDA_PRC,CCF_BANDA_PRC,Susan Whitfield-Gabrieli,74,75
+CCF_PHCP_PRC,CCF_PHCP_PRC,Scott Sponheim,116,378
+CCF_BWH_PRC,CCF_BWH_PRC,Martha Shenton,109,112
+CCF_ECP_PRC,CCF_ECP_PRC,Jeffrey Binder,47,77
+CCF_ADCPWI_PRC,CCF_ADCPWI_PRC,Shi-Jiang Li,39,77
+CCF_EEAJ_PRC,CCF_EEAJ_PRC,John Ringman,33,35
+CCF_CBA_PRC,CCF_CBA_PRC,James Becker,164,307
+CCF_STACT_ITK,CCF_STACT_ITK,Leanne Williams,3,3
+CCF_STACT_PRC,CCF_STACT_PRC,Leanne Williams,0,0
+CCF_HCLV_ITK,Human Connectomes for Low Vision, Blindness, Sight Restoration,Yonggang Shi,11,20
+CCF_HCLV_PRC,CCF_HCLV_PRC,Yonggang Shi,0,0
+CCF_HCA_STG,CCF HCP-Aging (HCA) Staging Project,Beau Ances,704,702
+CCF_MDD_STG,CCF Major Depressive Disorder Staging Project,Katherine Narr,5,11
+CCF_HCA_ITK,CCF HCP-Aging (HCA) Intake Project,Beau Ances,1024,2172
+CCF_HCD_STG,CCF HCP-Development (HCD) Staging Project,Deanna Barch,665,656

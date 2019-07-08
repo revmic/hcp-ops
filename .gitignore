@@ -8,6 +8,8 @@ backups/
 venv/
 *.json
 .DS_Store
+db/relays
+app/node_modules/
 
 # C extensions
 *.so
@@ -59,3 +61,5 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+log/
+tmp/
